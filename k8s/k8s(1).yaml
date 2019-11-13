@@ -1,0 +1,63 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: workshop-ingress
+  labels:
+    app: workshop
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+  generation: 1
+spec:
+  rules:
+  - host: workshopweb-user35.g4.dotnetconf.cn
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: workshop-web
+          servicePort: 80
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: workshop-web
+  labels:
+    app: workshop-web
+spec:
+  selector:
+    app: workshop-web
+  ports:
+  - name: workshop-web
+    protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workshop-web
+  labels:
+    app: workshop-web
+spec:
+  selector:
+    matchLabels:
+      app: workshop-web
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workshop-web
+    spec:
+      containers:
+      - name: workshop-web
+        image: dotnetclub-docker.pkg.coding.net/dotnetconf/dev/aspnetapp:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "$$ENVIRONMENT_NAME"
+        - name: ASPNETCORE_ORCHESTRATOR
+          value: "k8s"
