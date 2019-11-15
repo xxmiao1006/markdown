@@ -4,16 +4,28 @@
 #查看端口占用情况 
 lsof -i:8000
 netstat -tunlp | grep 8000
+
 #查看当前所有tcp端口
 netstat -ntlp
+
 #杀死进程
 kill -9 26993
+
+#关闭防火墙
+systemctl stop firewalld
+systemctl disable firewalld
+
+#禁用swap
+swapoff -a
 
 #解压文件
 tar -xzvf test.tar.gz 
 
-##进程
+#进程
 ps -elf
+
+#安装常用工具
+
 ```
 
 #### elasticsearch
@@ -46,6 +58,7 @@ curl -X GET http://localhost:9200/_cat
 ```bash
 #进入容器命令行界面   898f2cd0403d  容器id  退出用exit
 docker exec -u 0 -it 898f2cd0403d /bin/bash
+docker attach containerid   
 
 #查看容器启动日志
 docker logs -f 898f2cd0403d89394ec01ef47892f9cc4b381378db7973714611d550659ccb08
@@ -58,5 +71,12 @@ docker network ls
 
 #docker bridge 网络的配置信息
 docker network inspect bridge
+
+#data volume
+docker inspect containerid/containername/volumename
+docker volume ls
+
+#logging driver
+docker info |grep 'Logging Driver'
 ```
 
