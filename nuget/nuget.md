@@ -60,7 +60,7 @@ dotnet nuget push *.nupkg -k ee28314c-f7fe-2550-bd77-e09eda3d0119 -s http://192.
 
 ### 四. 在linux上使用外部包源
 
-在vs中我们可以通过选项去配置外部包源，但是现在要在linux中进行编译代码，这样代码势必会找不要外部包源，这里我将代码传到linux上，执行命令`dotnet-resotre`
+在vs中我们可以通过选项去配置外部包源，但是现在要在linux中进行编译代码，这样代码势必会找不要外部包源，这里我将代码传到linux上，执行命令`dotnet-restore`
 
 ![编译找不到包源2.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8w9hleaudj312z031wej.jpg)
 
