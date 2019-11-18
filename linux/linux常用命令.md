@@ -26,6 +26,8 @@ ps -elf
 
 #安装常用工具
 
+#资源信息
+lscpu
 ```
 
 #### elasticsearch
@@ -78,5 +80,41 @@ docker volume ls
 
 #logging driver
 docker info |grep 'Logging Driver'
+
+#列出所有的 dangling images
+docker images -f "dangling=true"
+
+#删除所有的 dangling images：
+docker rmi $(docker images -f "dangling=true" -q)
+
+#启动所有 docker 容器
+docker start $(docker ps -aq)
+
+#停止所有 docker 容器
+docker stop $(docker ps -aq)
+
+#删除所有 docker 容器
+docker rm $(docker ps -aq)
+
+#删除所有 docker 镜像
+docker rmi $(docker images -q)
+
+#docker 资源清理
+# 删除所有退出状态的容器
+docker container prune 
+
+# 删除未被使用的数据卷
+docker volume prune 
+
+# 删除 dangling 或所有未被使用的镜像
+docker image prune 
+
+#删除已停止的容器、dangling 镜像、未被容器引用的 network 和构建过程中的 cache
+# 安全起见，这个命令默认不会删除那些未被任何容器引用的数据卷，如果需要同时删除这些数据卷，你需要显式的指定 --volumns 参数
+docker system prune 
+
+#这次不仅会删除数据卷，而且连确认的过程都没有了！注意，使用 --all 参数后会删除所有未被引用的镜像而不仅仅是 dangling 镜像
+docker system prune --all --force --volumns 
+
 ```
 

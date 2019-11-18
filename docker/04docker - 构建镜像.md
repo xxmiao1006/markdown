@@ -41,7 +41,18 @@ docker commit container-name new-image-name
 
 ### 二. Dockerfile构建镜像
 
-Dockerfile 是一个文本文件，记录了镜像构建的所有步骤。
+Dockerfile 是一个文本文件，记录了镜像构建的所有步骤。Dockerfile 一般分为四部分：基础镜像信息、维护者信息、镜像操作指令和容器启动时执行指令，’#’ 为 Dockerfile 中的注释。
+
+docker build 基于dockerfile制作镜像的命令
+
+```bash
+docker build [OPTIONS] PATH | URL | -
+```
+
+- -t：打标签
+-  -c，- cpu-shares int ：CPU份额（相对权重）
+-  -m，- memory bytes：内存限制
+-  --build-arg：设置构建时变量，就是构建的时候修改ARG指令的参数
 
 用Dockerfile创建上面的ubuntu-with-vim，其内容为
 
@@ -169,4 +180,8 @@ RUN apt-get install -y mypackage=$MY_VERSION
 **ENTRYPOINT**
 		设置容器启动时运行的命令。
 		Dockerfile 中可以有多个 ENTRYPOINT 指令，但只有最后一个生效。CMD 或 docker run 之后的参数会被当		做参数传递给 ENTRYPOINT。
+
+参考博客
+
+参考博客 [dockerfile详解](https://www.cnblogs.com/along21/p/10243761.html)
 
