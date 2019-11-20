@@ -1,6 +1,6 @@
 ## git分支操作
 
-### 1.创建本地分支与远程分支
+### 一. 创建本地分支与远程分支
 
 创建本地分支并切换到本地分支
 
@@ -34,7 +34,7 @@ git pull
 git checkout --track origin/feat-{0.1}-{测试}
 ```
 
-### 2. 其他命令
+### 二. 其他命令
 
 切换分支
 
@@ -63,7 +63,7 @@ git branch -r -d origin/feat-{0.1}-{测试}
 git push origin :feat-{0.1}-{测试}
 ```
 
-### 3. git常用命令
+### 三. git常用命令
 
 ```bash
 git branch #创建分支
@@ -130,3 +130,30 @@ git update-index --no-assume-unchanged file
 git config --global credential.helper store
 ```
 
+### 四. demo
+
+#### 1.Git合并某个分支的一个commit到另一个分支
+
+例如要将A分支的一个commit合并到B分支：
+
+首先切换到A分支
+
+```bash
+git checkout A
+
+git log
+```
+
+找出要合并的commit ID :
+
+例如:0128660c08e325d410cb845616af355c0c19c6fe
+
+然后切换到B分支上
+
+```bash
+git checkout B
+
+git cherry-pick  0128660c08e325d410cb845616af355c0c19c6fe
+```
+
+然后就将A分支的某个commit合并到了B分支了
