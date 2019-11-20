@@ -8,12 +8,24 @@ netstat -tunlp | grep 8000
 #查看当前所有tcp端口
 netstat -ntlp
 
+#查看已开放端口列表
+firewall-cmd --permanent --list-port 
+
 #杀死进程
 kill -9 26993
 
-#关闭防火墙
-systemctl stop firewalld
-systemctl disable firewalld
+#防火墙相关
+systemctl status firewalld.service #查看防火墙状态
+systemctl start firewalld.service #启用防火墙
+systemctl stop firewalld #停用防火墙
+systemctl disable firewalld #开机禁用
+systemctl enable firewalld #开机启用
+
+#系统常用
+top  #查看cup 内存
+df -h  #查看硬盘
+du -sh *  #查看当前目录文件大小的详细列表
+systemctl restart network #重启网络
 
 #禁用swap
 swapoff -a
@@ -25,6 +37,7 @@ tar -xzvf test.tar.gz
 ps -elf
 
 #安装常用工具
+yum install bridge-utils
 
 #资源信息
 lscpu
