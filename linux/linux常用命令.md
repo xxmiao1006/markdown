@@ -4,12 +4,14 @@
 #查看端口占用情况 
 lsof -i:8000
 netstat -tunlp | grep 8000
+ps aux | grep 4874
 
 #查看当前所有tcp端口
 netstat -ntlp
 
 #查看已开放端口列表
 firewall-cmd --permanent --list-port 
+
 
 #杀死进程
 kill -9 26993

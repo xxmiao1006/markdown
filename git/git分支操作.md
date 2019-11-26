@@ -67,7 +67,7 @@ git push origin :feat-{0.1}-{测试}
 
 ```bash
 git branch #创建分支
-git branch -b #创建并切换到新建的分支上
+git checkout -b #创建并切换到新建的分支上
 git checkout #切换分支
 git branch -a #查看分支列表
 git branch -v #查看所有分支的最后一次操作
