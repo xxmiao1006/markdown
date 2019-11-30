@@ -23,11 +23,24 @@ systemctl stop firewalld #停用防火墙
 systemctl disable firewalld #开机禁用
 systemctl enable firewalld #开机启用
 
+#iptables
+service iptables status #查看iptables状态
+systemctl restart iptables.service #重启
+iptables -L
+
+
 #系统常用
 top  #查看cup 内存
 df -h  #查看硬盘
 du -sh *  #查看当前目录文件大小的详细列表
 systemctl restart network #重启网络
+
+#设置环境变量
+export hyd_file_default_port="9998"
+#加载环境变量
+source /etc/profile
+#查看环境变量
+echo $hyd_file_default_port
 
 #禁用swap
 swapoff -a

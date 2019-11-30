@@ -90,8 +90,8 @@ docker run hello-world
 之后重新启动服务。
 
 ```bash
-$ sudo systemctl daemon-reload
-$ sudo systemctl restart docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
 ```
 
 输入`docker info`，可以看到如下，说明配置成功
