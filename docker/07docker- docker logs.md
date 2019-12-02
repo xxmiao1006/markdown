@@ -54,3 +54,37 @@ attach 的方法在实际使用中不太方便，因为：
 
 Docker 的默认 logging driver 是 `json-file`。
 
+`docker info |grep 'Logging Driver'`
+
+` Logging Driver: json-file`
+
+如果容器在启动时没有特别指明，就会使用这个默认的 logging driver。
+
+`json-file` 会将容器的日志保存在 json 文件中，Docker 负责格式化其内容并输出到 STDOUT 和 STDERR。
+
+我们可以在 Host 的容器目录中找到这个文件，器路径为 `/var/lib/docker/containers/<contariner ID>/<contariner ID>-json.log`
+
+比如我们可以查看前面 httpd 容器 json 格式的日志文件。
+
+![dockerlogs-7.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9i7auynyij313m0fyae1.jpg)
+
+除了 `json-file`，Docker 还支持多种 logging driver。完整列表可访问官方文档 https://docs.docker.com/config/containers/logging/configure/
+
+![dockerlogs-8.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9i7eun20oj30lc0h93zw.jpg)
+
+`none` 是 disable 容器日志功能。
+
+`syslog` 和 `journald` 是 Linux 上的两种日志管理服务。
+
+`awslogs`、`splunk` 和 `gcplogs` 是第三方日志托管服务。
+
+`gelf` 和 `fluentd` 是两种开源的日志管理方案，我们会在后面分别讨论。
+
+容器启动时可以通过 `--log-driver` 指定使用的 logging driver。如果要设置 Docker 默认的 logging driver，需要修改 Docker daemon 的启动脚本，指定 `--log-driver` 参数，比如：
+
+```bash
+ExecStart=/usr/bin/dockerd -H fd:// --log-driver=syslog --log-opt ......
+```
+
+每种 logging driver 都有自己的 `--log-opt`，使用时请参考官方文档。
+
