@@ -58,5 +58,51 @@ Docker 安装时会创建一个 命名为 `docker0` 的 linux bridge。如果不
 
 容器创建时，docker 会自动从 172.17.0.0/16 中分配一个 IP，这里 16 位的掩码保证有足够多的 IP 可以供容器使用。
 
+### 四. user-defined
 
+Docker 提供三种 user-defined 网络驱动：bridge, overlay 和 macvlan。overlay 和 macvlan 用于创建跨主机的网络
+
+我们可通过 bridge 驱动创建类似前面默认的 bridge 网络，例如：
+
+![docker网络-11.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kj9d1rl7j30p803qmxg.jpg)
+
+查看一下当前 host 的网络结构变化：
+
+![docker网络-12.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjb34p1oj30qq06mgm5.jpg)
+
+新增了一个网桥 `br-eaed97dc9a77`，这里 `eaed97dc9a77` 正好新建 bridge 网络 `my_net` 的短 id。执行 `docker network inspect` 查看一下 `my_net` 的配置信息：
+
+![docker网络-13.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjc0bu4ej30vo0ocq48.jpg)
+
+这里 172.18.0.0/16 是 Docker 自动分配的 IP 网段。
+
+我们可以自己指定 IP 网段。只需在创建网段时指定 `--subnet` 和 `--gateway` 参数
+
+![docker网络-14.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjg1sy14j315e0q8ac4.jpg)
+
+这里我们创建了新的 bridge 网络 `my_net2`，网段为 172.22.16.0/24，网关为 172.22.16.1。与前面一样，网关在 `my_net2` 对应的网桥 `br-5d863e9f78b6` 上：
+
+![docker网络-15.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjh4efzzj30py094my8.jpg)
+
+容器要使用新的网络，需要在启动时通过 `--network` 指定：
+
+![docker网络-16.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjmmdz6fj30uw0g4jtc.jpg)
+
+容器分配到的 IP 为 172.22.16.2。
+
+到目前为止，容器的 IP 都是 docker 自动从 subnet 中分配，我们能否指定一个静态 IP 呢？
+
+可以通过`--ip`指定
+
+![docker网络-17.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjplpl9tj30ug0g2ac0.jpg)
+
+注：**只有使用 --subnet 创建的网络才能指定静态 IP**。
+
+`my_net` 创建时没有指定 `--subnet`，如果指定静态 IP 报错如下：
+
+![docker网络-18.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjqdoejbj313s04udgb.jpg)
+
+好了，我们来看看当前 docker host 的网络拓扑结构。
+
+![docker网络-19.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9kjts8bcuj30k00puwfk.jpg)
 

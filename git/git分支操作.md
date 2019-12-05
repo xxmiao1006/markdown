@@ -90,6 +90,7 @@ git stash clear #清除暂存
 
 #回退操作：
 git reset --hard HEAD^ #回退到上一个版本
+git push origin HEAD --force
 git reset --hard ahdhs1(commit_id) #回退到某个版本
 git checkout -- file#撤销修改的文件(如果文件加入到了暂存区，则回退到暂存区的，如果文件加入到了版本库，则还原至加入版本库之后的状态)
 git reset HEAD file #撤回暂存区的文件修改到工作区
