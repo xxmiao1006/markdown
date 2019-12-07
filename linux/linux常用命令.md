@@ -26,6 +26,7 @@ systemctl enable firewalld #开机启用
 #iptables
 service iptables status #查看iptables状态
 systemctl restart iptables.service #重启
+iptables -t nat -S #iptables 规则
 iptables -L
 
 

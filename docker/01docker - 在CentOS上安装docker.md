@@ -101,3 +101,9 @@ sudo systemctl restart docker
   https://registry.deoker-cn.com/
 ```
 
+在生产系统中，应该使用特定版本的Docker CE，而不是始终使用最新版本。可以通过sort -r命令按版本号对结果进行排序
+
+```bash
+yum list docker-ce  --showduplicates | sort -r  #
+```
+
