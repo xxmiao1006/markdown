@@ -21,3 +21,17 @@ WHERE     QS.creation_time BETWEEN '2019-11-27 0:00:00' AND '2019-11-27 16:00:00
 ORDER BY QS.creation_time DESC
 ```
 
+查看sqlserver现有链接数
+
+```sql
+select count(distinct(login_time)) from sys.sysprocesses
+```
+
+sqlserver最大链接数
+
+```sql
+SELECT value_in_use
+FROM sys.configurations c
+WHERE c.name = 'user connections';
+```
+
