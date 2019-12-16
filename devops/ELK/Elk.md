@@ -9,6 +9,30 @@ docker run -p 5601:5601 -p 9200:9200 -p 5044:5044 -it --name elk -e ES_MIN_MEM=5
 
 
 
+### filebeat
+
+```bash
+curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-6.8.5-linux-x86_64.tar.gz
+tar xzvf filebeat-6.8.5-linux-x86_64.tar.gz
+#启动
+.\filebeat.exe -c filebeat.yml -e
+
+#测试输出
+./filebeat test output
+```
+
+
+
+### kibana
+
+```bash
+wget https://artifacts.elastic.co/downloads/kibana/kibana-6.3.2-linux-x86_64.tar.gz
+sha1sum kibana-6.3.2-linux-x86_64.tar.gz 
+tar -xzf kibana-6.3.2-linux-x86_64.tar.gz
+```
+
+注意如果在阿里云上部署想通过ip访问先配置安全组规则，再去kibana.yml中配置servethost为0.0.0.0
+
 ### elasticsearch
 
 * elasticsearch curd
@@ -41,6 +65,17 @@ POST /accounts/person/1/_update
 #删除
 DELETE /accounts/person/1
 DELETE /accounts
+#删除所有索引
+DELETE /_all
+
+#分词器
+POST _analyze
+{
+  "analyzer": "standard",
+  "text": "hello world!"
+}
+
+
 ```
 
 * elasticsearch qury
