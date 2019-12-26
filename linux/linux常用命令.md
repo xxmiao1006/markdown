@@ -22,6 +22,7 @@ systemctl start firewalld.service #启用防火墙
 systemctl stop firewalld #停用防火墙
 systemctl disable firewalld #开机禁用
 systemctl enable firewalld #开机启用
+systemctl disable firewalld #关闭开机自启
 
 #iptables
 service iptables status #查看iptables状态
@@ -48,6 +49,9 @@ swapoff -a
 
 #解压文件
 tar -xzvf test.tar.gz 
+
+#拷贝
+cp -r 
 
 #进程
 ps -elf
