@@ -4,7 +4,7 @@
 
 简单的说，容器是独立运行的一个或一组应用，以及它们的运行态环境。对应的，虚拟机可以理解为模拟运行的一整套操作系统（提供了运行态环境和其他系统环境）和跑在上面的应用。
 
-![docker容器运行图.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yk6xjd0ij30vd0fz3zd.jpg)
+![docker容器运行图.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yk6xjd0ij30vd0fz3zd.jpg)
 
 ### 一. 启动容器
 
@@ -219,7 +219,7 @@ Total reclaimed space: 0B
 
 之前在学习镜像的分层结构时候，有提到容器的分层特性，当容器启动时，一个新的可写层被加载到镜像的顶部。这一层通常被称为`容器层`,`容器层`之下都叫做`镜像层
 
-![容器层.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8xjawmx3lj30l70ijk33.jpg)
+![容器层.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8xjawmx3lj30l70ijk33.jpg)
 
 所有对容器的改动 - 无论添加、删除、还是修改文件都只会发生在容器层中。
 

@@ -9,7 +9,7 @@ Docker 为容器提供了两种存放数据的资源：
 
 在前面镜像章节我们学习到 Docker 镜像的分层结构
 
-![dockersave-1.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8ygtk4um7j30ir0d1aam.jpg)
+![dockersave-1.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8ygtk4um7j30ir0d1aam.jpg)
 
 容器由最上面一个可写的容器层，以及若干只读的镜像层组成，容器的数据就存放在这些层中。这样的分层结构最大的特性是 Copy-on-Write：
 
@@ -54,27 +54,27 @@ bind mount 是将 host 上已存在的目录或文件 mount 到容器。
 
 例如 docker host 上有目录 $HOME/htdocs：
 
-![dockersave-2.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8yi3s1excj30s803w3z0.jpg)
+![dockersave-2.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8yi3s1excj30s803w3z0.jpg)
 
 通过 `-v` 将其 mount 到 httpd 容器：
 
-![dockersave-3.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yi4hyk0gj30vq03sdg9.jpg)
+![dockersave-3.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yi4hyk0gj30vq03sdg9.jpg)
 
 `-v` 的格式为 `<host path>:<container path>`。/usr/local/apache2/htdocs 就是 apache server 存放静态文件的地方。由于 /usr/local/apache2/htdocs 已经存在，原有数据会被隐藏起来，取而代之的是 host $HOME/htdocs/ 中的数据，这与 linux `mount` 命令的行为是一致的。
 
-![dockersave-4.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8yi7lvf48j30rs03q74r.jpg)
+![dockersave-4.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8yi7lvf48j30rs03q74r.jpg)
 
 curl 显示当前主页确实是 $HOME/htdocs/index.html 中的内容。
 
 下面我们将容器销毁，看看对 bind mount 有什么影响：
 
-![dockersave-5.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yibbv3tdj30fq07kwev.jpg)
+![dockersave-5.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yibbv3tdj30fq07kwev.jpg)
 
 可见，即使容器没有了，bind mount 也还在。
 
 另外，bind mount 时还可以指定数据的读写权限，默认是可读可写，可指定为只读：
 
-![dockersave-6.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yigwzov8j30xm08iabd.jpg)
+![dockersave-6.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yigwzov8j30xm08iabd.jpg)
 
 使用 bind mount 单个文件的场景是：只需要向容器添加文件，不希望覆盖整个目录。在上面的例子中，我们将 html 文件加到 apache 中，同时也保留了容器原有的数据
 
@@ -90,7 +90,7 @@ bind mount 的使用直观高效，易于理解，但它也有不足的地方：
 
 docker managed volume 与 [bind mount在使用上的最大区别是不需要指定 mount 源，指明 mount point 就行了。还是以 httpd 容器为例
 
-![dockersave-7.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yippc368j30se03qmxu.jpg)
+![dockersave-7.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yippc368j30se03qmxu.jpg)
 
 我们通过 `-v` 告诉 docker 需要一个 data volume，并将其 mount 到 /usr/local/apache2/htdocs。那么这个 data volume 具体在哪儿呢？
 
@@ -121,7 +121,7 @@ volume 的内容跟容器原有 /usr/local/apache2/htdocs 完全一样，这是�
 
 但要明确一点：此时的 /usr/local/apache2/htdocs 已经不再是由 storage driver 管理的层数据了，它已经是一个 data volume。我们可以像 bind mount 一样对数据进行操作，例如更新数据：
 
-![dockersave-8.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yj5z1xt8j313u06kwf5.jpg)
+![dockersave-8.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yj5z1xt8j313u06kwf5.jpg)
 
 回顾一下 docker managed volume 的创建过程：
 
@@ -132,7 +132,7 @@ volume 的内容跟容器原有 /usr/local/apache2/htdocs 完全一样，这是�
 
 除了通过 `docker inspect` 查看 volume，我们也可以用 `docker volume` 命令：
 
-![dockersave-9.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yj6vnp6yj313q0fugnc.jpg)
+![dockersave-9.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yj6vnp6yj313q0fugnc.jpg)
 
 目前，`docker volume` 只能查看 docker managed volume，还看不到 bind mount；同时也无法知道 volume 对应的容器，这些信息还得靠`docker inspect`。
 
@@ -154,13 +154,13 @@ volume 的内容跟容器原有 /usr/local/apache2/htdocs 完全一样，这是�
 
 之前学习过两种docker的存储资源，想要多个容器共享一个资源，最简单的一种方法就是多个文件mount host的一个文件，这里就不多赘述。
 
-![dockersave-10.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yjvg9x4gj30zi09kwg3.jpg)
+![dockersave-10.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yjvg9x4gj30zi09kwg3.jpg)
 
 #### 用 volume container 共享数据
 
 volume container 是专门为其他容器提供 volume 的容器。它提供的卷可以是 bind mount，也可以是 docker managed volume。下面我们创建一个 volume container：
 
-![dockersave-11.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yo921aigj30pc06mmxo.jpg)
+![dockersave-11.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yo921aigj30pc06mmxo.jpg)
 
 我们将容器命名为 `vc_data`（vc 是 volume container 的缩写）。注意这里执行的是 `docker create` 命令，这是因为 volume container 的作用只是提供数据，它本身不需要处于运行状态。容器 mount 了两个 volume
 
@@ -192,7 +192,7 @@ volume container 是专门为其他容器提供 volume 的容器。它提供的�
 
 其他容器可以通过 `--volumes-from` 使用 `vc_data` 这个 volume container：
 
-![dockersave-12jpg.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yobghc6kj30ua09c75s.jpg)
+![dockersave-12jpg.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yobghc6kj30ua09c75s.jpg)
 
 三个 httpd 容器都使用了 vc_data，看看它们现在都有哪些 volume，以 web1 为例：
 
@@ -220,7 +220,7 @@ docker inspect web1
 
 web1 容器使用的就是 vc_data 的 volume，而且连 mount point 都是一样的。验证一下数据共享的效果：
 
-![dockersave-13.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8yodhpjlbj31fa0eywgq.jpg)
+![dockersave-13.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8yodhpjlbj31fa0eywgq.jpg)
 
 可见，三个容器已经成功共享了 volume container 中的 volume。
 

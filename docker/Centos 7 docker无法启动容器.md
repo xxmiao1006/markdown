@@ -18,13 +18,13 @@ Error: failed to start containers: 657
 
 
 
-![nuget-docekr-1.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9exqyl8qhj312p030mxb.jpg)
+![nuget-docekr-1.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9exqyl8qhj312p030mxb.jpg)
 
 初步判定是因为两次启动容器的防火墙状态不一致（容器是在防火墙关闭的时候创建，第一次是在防火墙关闭的时候运行，第二次是在防火墙开启的时候运行）
 
 然后把防火墙关闭
 
-![nuget-docker-2.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9exuk5ztpj30md05gjrt.jpg)
+![nuget-docker-2.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9exuk5ztpj30md05gjrt.jpg)
 
 然后再启动容器,还是报之前的错误。
 
@@ -36,15 +36,15 @@ Error: failed to start containers: 657
 
 第二次在防火墙启动的时候，重启docker，创建启动容器
 
-![nuget-docker-5.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9eyovidg7j311m0bsdh1.jpg)
+![nuget-docker-5.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9eyovidg7j311m0bsdh1.jpg)
 
 然后关闭防火墙再启动，报错。
 
-![nuget-docker-3.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9eyl3iyxsj312p0cf40o.jpg)
+![nuget-docker-3.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9eyl3iyxsj312p0cf40o.jpg)
 
 然后把防火墙打开再启动，成功。
 
-![nuget-docker-4.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9eymfjoptj30um0extau.jpg)
+![nuget-docker-4.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9eymfjoptj30um0extau.jpg)
 
 ### 三. 问题
 
@@ -102,5 +102,5 @@ systemctl restart iptables.service
 
 停掉容器 ，启动防火墙，启动容器，报错，重启iptables.service，再重启容器，成功
 
-![nuget-docekr-6.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9f1awgi2uj30m30dh108.jpg)
+![nuget-docekr-6.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9f1awgi2uj30m30dh108.jpg)
 

@@ -192,7 +192,7 @@ Deleted: sha256:97ca462ad9eeae25941546209454496e1d66749d53dfa2ee32bf1faabd239d38
 
 前面的删除时提到了镜像的分层结构，实际上Docker Hub 中 99% 的镜像都是通过在 base 镜像中安装和配置需要的软件构建出来的。比如我们现在构建一个新的镜像，Dockerfile 如下：
 
-![image-1.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8win9fmddj30fw05sacj.jpg)
+![image-1.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8win9fmddj30fw05sacj.jpg)
 
 * 1.新镜像不再是从 scratch 开始，而是直接在 Debian base 镜像上构建。
 * 2.安装 emacs 编辑器。
@@ -201,7 +201,7 @@ Deleted: sha256:97ca462ad9eeae25941546209454496e1d66749d53dfa2ee32bf1faabd239d38
 
 构建过程如下：
 
-![构建过程.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8wipn9rukj30no07oq8o.jpg)
+![构建过程.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8wipn9rukj30no07oq8o.jpg)
 
 可以看到，新镜像是从 base 镜像一层一层叠加生成的。每安装一个软件，就在现有镜像的基础上增加一层。
 

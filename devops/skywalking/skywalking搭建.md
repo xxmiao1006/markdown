@@ -37,7 +37,7 @@ rpm -ivh jdk-8u221-linux-x64.rpm
 java -version
 ```
 
-![java安装成功.png](https://ws1.sinaimg.cn/large/006nK6pBgy1g762f1ed2wj30db025a9x.jpg)
+![java安装成功.png](https://wx1.sinaimg.cn/large/006nK6pBgy1g762f1ed2wj30db025a9x.jpg)
 
 #### 2. 部署Elasticsearch
 
@@ -53,11 +53,11 @@ docker run -p 9200:9200 -p 9300:9300 -e cluster.name=elasticsearch -e xpack.secu
 docker ps -a
 ```
 
-![elasticsearch启动成功.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7svq42gwjj312701iwef.jpg)
+![elasticsearch启动成功.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7svq42gwjj312701iwef.jpg)
 
 可以去主机的9200端口查看ui界面
 
-![elaticseach查看.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7svrqqaspj30b40aljrn.jpg)
+![elaticseach查看.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7svrqqaspj30b40aljrn.jpg)
 
 #### 3. 部署collector
 
@@ -65,11 +65,11 @@ docker ps -a
 
 这里使用的是6.x版本，相比于5.x版本，6.x版本的ui界面高大上许多。下载完解压后目录如下
 
-![skyapm目录.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7sw2v248hj30jq080q3d.jpg)
+![skyapm目录.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7sw2v248hj30jq080q3d.jpg)
 
 由于skywalking默认是使用h2作为数据存储，我们是使用官方推荐的elasticsearch作为数据存储，所以我们要修改一下配置文件` config\application.yml`，注释掉h2的配置，打开elasticsearch的配置，并且配置好elasticsearch的地址。
 
-![配置.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7sw85krcjj30n30e8jt0.jpg)
+![配置.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7sw85krcjj30n30e8jt0.jpg)
 
 ##### 配置信息
 
@@ -167,5 +167,5 @@ storage:
 
 配置完后进入` bin`目录，执行批处理文件，windows下为`startup.bat`,linux为` startup.sh`。启动成功后访问8080端口。出现如下界面则说明skywalking部署成功，接下来可以进行客户端接入
 
-![skywalkingUI.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7swh0wpm0j313y0l9gmp.jpg)
+![skywalkingUI.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7swh0wpm0j313y0l9gmp.jpg)
 

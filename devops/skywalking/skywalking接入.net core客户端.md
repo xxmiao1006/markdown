@@ -6,7 +6,7 @@ Skywalking服务端的搭建前一篇已经介绍过了，本篇我们将在.net
 
 自己新建一个webAPI项目或者拿以前的项目都行。在包管理器里面搜索nuget包：SkyAPM.Agent.AspNetCore，本次使用的是0.8.0版本
 
-![skyapm .net core nuget包.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7v7buc8tcj312d0budh7.jpg)
+![skyapm .net core nuget包.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7v7buc8tcj312d0budh7.jpg)
 
 ### 二. 添加环境变量
 
@@ -14,7 +14,7 @@ Skywalking服务端的搭建前一篇已经介绍过了，本篇我们将在.net
 
 * 直接添加系统环境变量，这样全部的项目都生效
 
-  ![系统环境变量.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7v7gazl24j30ro0cht9q.jpg)
+  ![系统环境变量.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7v7gazl24j30ro0cht9q.jpg)
 
 * 在项目中添加，可以在`launchSettings.json`或者是在启动项配置里面添加，两个效果都是一样的
 
@@ -117,15 +117,15 @@ dotnet skywalking config [application_code] [collector_server]
 
 启动服务后，可以在项目文件下的log文件夹里面看到按照格式生成的日志
 
-![生成日志.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7v8ed8kwmj30rf09mjrr.jpg)
+![生成日志.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7v8ed8kwmj30rf09mjrr.jpg)
 
 看到一下信息就表示接入成功了
 
-![日志.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7v8fphjxej30ws03r3z3.jpg)
+![日志.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7v8fphjxej30ws03r3z3.jpg)
 
 接下来可以请求几次，去UI界面看效果了，从图中可以看到服务名，请求都有了
 
-![效果图.png](https://ws1.sinaimg.cn/large/0072fULUgy1g7v8jwux8gj313e0ay0tx.jpg)
+![效果图.png](https://wx1.sinaimg.cn/large/0072fULUgy1g7v8jwux8gj313e0ay0tx.jpg)
 
 ### 五. 扩展
 

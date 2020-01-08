@@ -20,11 +20,11 @@
 
 选中“Create a Cluster"=>"Interactive Tutorial - Creating a Cluster"，从这里开始，然后会看到提示和终端的界面，这是一个基于Minikube的K8S终端，通过在终端中执行 minikube start 来创建一个单节点的K8S集群：
 
-![basic-1.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9tq62l6y3j30vj0gsjs3.jpg)
+![basic-1.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g9tq62l6y3j30vj0gsjs3.jpg)
 
 通过执行 kubectl cluster-info 可以查看集群信息：
 
-![basic-2.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9tq8b4k1ej30vk0gwaas.jpg)
+![basic-2.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g9tq8b4k1ej30vk0gwaas.jpg)
 
 #### 部署一个应用
 
@@ -36,7 +36,7 @@ kubectl create deployment kubernetes-bootcamp --image=gcr.io/google-samples/kube
 
 
 
-![basic-3.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9tqdrgoguj30vi0gsgme.jpg)
+![basic-3.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g9tqdrgoguj30vi0gsgme.jpg)
 
 通过执行`kubectl get pods`可以看到，当前的kubernetes-bootcamp-75bccb7d87-626s9就是当前应用的Pod。
 
@@ -49,11 +49,11 @@ echo -e "\n\n\n\e[92mStarting Proxy. After starting it will not output a respons
 kubectl proxy
 ```
 
-![basic-4.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9tqph919pj30vf0gq3za.jpg)
+![basic-4.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g9tqph919pj30vf0gq3za.jpg)
 
 ```bash
 curl http://localhost:8001/version
 ```
 
-![basic-5.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g9tqqzps5jj30vp0gugm5.jpg)
+![basic-5.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g9tqqzps5jj30vp0gugm5.jpg)
 

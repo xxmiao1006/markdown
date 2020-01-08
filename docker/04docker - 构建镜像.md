@@ -56,7 +56,7 @@ docker build [OPTIONS] PATH | URL | -
 
 用Dockerfile创建上面的ubuntu-with-vim，其内容为
 
-![dockerfile-1.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8xl7i1s9yj30m403f75h.jpg)
+![dockerfile-1.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8xl7i1s9yj30m403f75h.jpg)
 
 然后运行命令，这里注意 后面有一个`.`
 
@@ -64,7 +64,7 @@ docker build [OPTIONS] PATH | URL | -
 docker build -t ubuntu-with-vi-dockerfile .
 ```
 
-![dockerfile-2.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8xl8vrv4pj30ju0gzmxr.jpg)
+![dockerfile-2.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8xl8vrv4pj30ju0gzmxr.jpg)
 
 ① 当前目录为 /root。
 
@@ -94,7 +94,7 @@ ubuntu 镜像 ID 为 f753707788c5。
 
 通过命令`docker images`查看所有镜像
 
-![dockerfile-3.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8xlawjd2tj30nl02f3zy.jpg)
+![dockerfile-3.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8xlawjd2tj30nl02f3zy.jpg)
 
 在上面的构建过程中，我们要特别注意指令 RUN 的执行过程 ⑦、⑧、⑨。Docker 会在启动的临时容器中执行操作，并通过 commit 保存为新的镜像。
 
@@ -102,13 +102,13 @@ ubuntu 镜像 ID 为 f753707788c5。
 
 ubuntu-with-vi-dockerfile 是通过在 base 镜像的顶部添加一个新的镜像层而得到的。
 
-![dockerfile-4.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8xlf5aeitj30n00fqdgk.jpg)
+![dockerfile-4.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8xlf5aeitj30n00fqdgk.jpg)
 
 这个新镜像层的内容由 `RUN apt-get update && apt-get install -y vim` 生成。这一点我们可以通过 `docker history` 命令验证。
 
 `docker history` 会显示镜像的构建历史，也就是 Dockerfile 的执行过程。
 
-![dockerfile-5.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1g8xlg3wr9nj31220hu0w4.jpg)
+![dockerfile-5.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1g8xlg3wr9nj31220hu0w4.jpg)
 
 ubuntu-with-vi-dockerfile 与 ubuntu 镜像相比，确实只是多了顶部的一层 35ca89798937，由 apt-get 命令创建，大小为 97.07MB。docker history 也向我们展示了镜像的分层结构，每一层由上至下排列。
 
@@ -128,7 +128,7 @@ Docker 会缓存已有镜像的镜像层，构建新镜像时，如果某镜像�
 
 除了构建时使用缓存，Docker 在下载镜像时也会使用。例如我们下载 httpd 镜像
 
-![dockerfile-6.png](https://ws1.sinaimg.cn/large/0072fULUgy1g8xlqdc8emj30v409gt9r.jpg)
+![dockerfile-6.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8xlqdc8emj30v409gt9r.jpg)
 
 docker pull 命令输出显示第一层（base 镜像）已经存在，不需要下载
 

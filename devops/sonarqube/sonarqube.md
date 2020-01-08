@@ -49,7 +49,7 @@ su - sonarqube
 
 安装中文插件 然后restart(如无法下载，可以手动下载插件jar包安装到sonarqube目录下extensions/plugins)
 
-![sonar-1.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1ga9vn6hr3oj312m0hrgnr.jpg)
+![sonar-1.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1ga9vn6hr3oj312m0hrgnr.jpg)
 
 
 
@@ -92,7 +92,7 @@ C:\Users\miao.dotnet\tools.store\dotnet-sonarscanner\4.3.1\dotnet-sonarscanner\4
 
 配置好web地址和token
 
-![sonar-2.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1ga9wia6m82j31320jkq4r.jpg)
+![sonar-2.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1ga9wia6m82j31320jkq4r.jpg)
 
 首先随便找个项目，这个就不多说了。有了代码以后然后进入代码目录，依次输入下面命令：
 

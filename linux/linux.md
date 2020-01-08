@@ -2,7 +2,7 @@
 
 详解`top` 命令
 
-![top.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9dln6eymlj30gf02idfu.jpg)
+![top.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9dln6eymlj30gf02idfu.jpg)
 
 **top命令的结果分为两个部分**：
 
@@ -91,7 +91,7 @@ T：根据时间/累计时间进行排序；
 
 什么是桥接模式？桥接模式就是将主机网卡与虚拟机虚拟的网卡利用虚拟网桥进行通信。在桥接的作用下，类似于把物理主机虚拟为一个交换机，所有桥接设置的虚拟机连接到这个交换机的一个接口上，物理主机也同样插在这个交换机当中，所以所有桥接下的网卡与网卡都是交换模式的，相互可以访问而不干扰。在桥接模式下，虚拟机ip地址需要与主机在同一个网段，如果需要联网，则网关与DNS需要与主机网卡一致。其网络结构如下图所示：
 
-![桥接模式.png](https://ws1.sinaimg.cn/large/0072fULUgy1gaa2ljwstej30xc0n6q53.jpg)
+![桥接模式.png](https://wx1.sinaimg.cn/large/0072fULUgy1gaa2ljwstej30xc0n6q53.jpg)
 
 接下来，我们就来实际操作，如何设置桥接模式。
 
@@ -103,7 +103,7 @@ T：根据时间/累计时间进行排序；
 
 然后，进入系统编辑网卡配置文件，命令为vi /etc/sysconfig/network-scripts/ifcfg-eth0
 
-![虚拟网卡.jpg](https://ws1.sinaimg.cn/large/0072fULUgy1gaa2nldgyzj30in08hdge.jpg)
+![虚拟网卡.jpg](https://wx1.sinaimg.cn/large/0072fULUgy1gaa2nldgyzj30in08hdge.jpg)
 
 编辑完成，保存退出，然后重启虚拟机网卡，使用ping命令ping外网ip，测试能否联网。
 
