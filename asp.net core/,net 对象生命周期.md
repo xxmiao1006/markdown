@@ -8,11 +8,11 @@
 
 典型的栈内存使用的例子就是函数栈，每一个函数被调用时都会被分配一块内存，这块内存被称为栈内存，以先进后出的方式存取数据，在函数执行过程中不断往函数栈中压入（PUSH）数据（值类型数据：int、float、对象的引用...），函数执行完后又将函数栈中的数据逐个弹出（POP）,由于是以操作栈的形式来存取，所以访问速度快。
 
-![object-1.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sj463kfqj30l50dut8x.jpg)
+![object-1.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sj463kfqj30l50dut8x.jpg)
 
 **堆内存，**从字面意思上理解就好像是仓库里面可以存一堆破烂，你若是需要存点什么东西就尽管往里面一扔，仓库里有的是空间。事实确实也是如此，**堆内存中可以存放大规格的数据（比如对象资源）**，这些数据是不适合存放在栈中的，因为栈空间的容量有限，这就是**堆内存相对于栈内存的好处：容量大**。但是它的缺点也是显而易见的，那就是**存取堆内存的数据相较于存取栈内存是非常慢的**，试想一下，让你在仓库里的一堆破烂里去找你想要的东西是什么感觉。 [栈内存比堆内存详细参考](https://blog.csdn.net/boyxiaolong/article/details/8543676)
 
-![object-2.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sj4dw45hj30hu0asaa6.jpg)
+![object-2.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sj4dw45hj30hu0asaa6.jpg)
 
 从内存分配方式上看，堆内存不同于栈内存，函数栈是在每一个函数被执行的时候被自动分配并且函数执行完成后自动回收，而如果你想使用堆内存，就得自己动手丰衣足食
 
@@ -36,7 +36,7 @@
 
 c#中的**new关键字最终会被编译器翻译成CIL的newobj指令**。
 
-![object-3.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sjdbrembj30g805nwef.jpg)
+![object-3.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sjdbrembj30g805nwef.jpg)
 
 首先，需要明白托管堆不仅仅是一个可由CLR访问的随机内存块。.NET垃圾回收器是堆的“清洁工”，出于优化的目的它会压缩空闲的内存块（当需要时）。为了辅助压缩，托管堆会维护一个指针(通常被叫做下一个对象指针或者是新对象指针），这个指针用来标识下一个对象在堆中分配的地址
 
@@ -50,7 +50,7 @@ c#中的**new关键字最终会被编译器翻译成CIL的newobj指令**。
 
 下面的图解释了在托管堆上分配对象的细节。
 
-![object-4.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sji6p044j30ev05g3yj.jpg)
+![object-4.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sji6p044j30ev05g3yj.jpg)
 
 在c#中分配对象是一个很频繁的操作，照这样下去托管堆上的空间迟早会被挥霍完，所以，重点来了，**如果CLR 发现托管堆没有足够空间分配请求的类型时，它会执行一次垃圾回收来释放内存**。
 
@@ -84,7 +84,7 @@ c#中的**new关键字最终会被编译器翻译成CIL的newobj指令**。
 
 下图是上述场景的一个可能的对象图（你可以把箭头读作依赖或者需要，例如"E依赖于G，间接依赖于B，“A不依赖任何对象”等）。
 
-![object-5.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sjqcfsxrj30ac06jjrh.jpg)
+![object-5.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sjqcfsxrj30ac06jjrh.jpg)
 
 ​											（创建的对象图是用来决定哪些对象是应用程序根可达的。）
 
@@ -92,7 +92,7 @@ c#中的**new关键字最终会被编译器翻译成CIL的newobj指令**。
 
 下图阐明了清除和压缩堆的过程。
 
-![object-6.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sjv1jz3zj308e03gdfq.jpg)
+![object-6.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sjv1jz3zj308e03gdfq.jpg)
 
 　**到这里，通过对应用程序根的作用的理解，我们知道了如何知道一个对象是“不再需要”的。通俗点来说就是，这个对象在应用程序中已经无需被访问了，成为了一座“孤岛”，自然也就不再需要它了。**
 
@@ -113,7 +113,7 @@ c#中的**new关键字最终会被编译器翻译成CIL的newobj指令**。
 
 垃圾回收器首先会检查generation 0的所有对象。如果标记并清理这些对象（译者注：因为新对象的生存期往往较短，并且期望在执行回收时，应用程序不再使用第 0 级托管堆中的许多对象）后产生了足够使用的内存空间，任何存活下来的对象就被提升到Generation 1。为了理解一个对象的代如何影响回收的过程，可以查看下图。下图解释了generation 0中一次垃圾回收后，存活的对象被提升的过程。
 
-![object-7.png](https://ws1.sinaimg.cn/large/0072fULUgy1g9sjzscmqfj308g05ijra.jpg)
+![object-7.png](https://wx1.sinaimg.cn/large/0072fULUgy1g9sjzscmqfj308g05ijra.jpg)
 
 ​												（generation 0 中的存活对象被提升到generation 1）
 
