@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "efosfunc"
+    },
+    "eventHubConnectionString": {
+      "value": "Endpoint=sb://ihsuprodsgres003dednamespace.servicebus.windows.net/;SharedAccessKeyName=iothubowner;SharedAccessKey=QiSgICR7VgnOcVX7TeCFtCYVcY8axdxZiJ4rzEAfVnk=;EntityPath=iothub-ehub-efos-iothu-3101220-1d8f61648a"
+    },
+    "eventHubName": {
+      "value": "iothub-ehub-efos-iothu-3101220-1d8f61648a"
+    },
+    "eventHubConsumerGroup": {
+      "value": "consumer-warm"
+    },
+    "cosmosDbDatabase": {
+      "value": "efoscosmosdb"
+    },
+    "cosmosDBCollection": {
+      "value": "IotDatas"
+    },
+    "appInsightsLocation": {
+      "value":  "Southeast Asia"
+    }
+  }
+}
