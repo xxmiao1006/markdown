@@ -35,7 +35,7 @@ docker run -d  -p 8085:80 -v /home/nuget/db:/var/www/db -v /home/nuget/packages:
 
 
 ```bash
-dotnet nuget push *.nupkg -k ee28314c-f7fe-2550-bd77-e09eda3d0119 -s http://192.168.1.37:8085
+dotnet nuget push *.nupkg -k ee28314c-f7fe-2550-bd77-e09eda3d0119 -s http://192.168.1.36:8085
 ```
 
 ![推送成功.png](https://wx1.sinaimg.cn/large/0072fULUgy1g8w8zqaz8xj30r30b70sr.jpg)
