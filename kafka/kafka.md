@@ -23,7 +23,7 @@ ______
 
 ![kafka基础架构.png](https://wx1.sinaimg.cn/large/0072fULUgy1ge97np0igrj311x0ksaf2.jpg)
 
-
+ 
 
 * **Producer** ：消息生产者，就是向 kafka broker 发消息的客户端；
 
@@ -89,3 +89,4 @@ ______
 kafka数据是存在磁盘中的，为什么查找数据还会快？
 
 一个topic有多个partition，一个partition有多个segment，每个segment对应.log和.index文件，index文件里面存的是偏移量。和对应消息在.log文件的位置（包括文件的大小），.index文件里面的元数据大小基本都是固定的，所以可以通过偏移量快速找到该条信息在.log文件中的位置与大小，这样取出来就非常快了。
+

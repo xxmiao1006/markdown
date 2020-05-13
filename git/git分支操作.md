@@ -79,7 +79,7 @@ git branch -d 分支名 #删除本地分支
 git branch -D 分支名 #强行删除分支
 git branch origin :分支名 #删除远处仓库分支
 git merge 分支名 #合并分支到当前分支上
-
+git blame [filename]
 #暂存操作：
 git stash #暂存当前修改
 git stash apply #恢复最近的一次暂存

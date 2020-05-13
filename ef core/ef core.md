@@ -6,8 +6,6 @@
 - 在查询的时候不要对where条件的参数进行插表查询，再次关联表时候又扫一次表性能很低
 - 所有关联的表信息尽量在where条件前进行关联，where条件后进行筛选
 
-
-
 ### sqlserver
 
 查询历史执行sql记录
@@ -34,4 +32,45 @@ SELECT value_in_use
 FROM sys.configurations c
 WHERE c.name = 'user connections';
 ```
+
+查询某一个表的字段和数据类型
+
+```mssql
+select data_type,column_name 
+from information_schema.columns
+where table_name = 'iot'
+```
+
+```sql
+--1.按姓氏笔画排序:
+Select * From TableName Order By CustomerName Collate Chinese_PRC_Stroke_ci_as
+
+--8.如何修改数据库的名称:
+
+sp_renamedb 'old_name', 'new_name' 
+
+--9：获取当前数据库中的所有用户表
+select Name from sysobjects where xtype='u' and status>=0
+
+--10：获取某一个表的所有字段
+select name from syscolumns where id=object_id('表名')
+
+--11：查看与某一个表相关的视图、存储过程、函数
+select a.* from sysobjects a, syscomments b where a.id = b.id and b.text like '%表名%'
+
+--12：查看当前数据库中所有存储过程
+select name as 存储过程名称 from sysobjects where xtype='P'
+
+--13：查询用户创建的所有数据库
+select * from master..sysdatabases D where sid not in(select sid from master..syslogins where name='sa')
+--或者
+select dbid, name AS DB_NAME from master..sysdatabases where sid <> 0x01
+
+--14：查询某一个表的字段和数据类型
+select column_name,data_type from information_schema.columns
+where table_name = '表名'
+
+```
+
+
 
