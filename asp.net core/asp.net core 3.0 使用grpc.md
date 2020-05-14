@@ -175,3 +175,16 @@ public void ConfigureServices(IServiceCollection services)
 }
 ```
 
+远程连接proto文件
+
+```c#
+<ItemGroup>
+    <Protobuf Include="..\..\StreamTest\StreamTest\Protos\LuCat.proto" GrpcServices="Client">
+      <Link>Protos\LuCat.proto</Link>
+    </Protobuf>
+    <Protobuf Include="Protos\greet.proto" GrpcServices="Client">
+      <SourceUri>http://192.168.1.31:9999/files/protos/greet.proto</SourceUri>
+    </Protobuf>
+  </ItemGroup>
+```
+
