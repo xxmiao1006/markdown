@@ -16,13 +16,13 @@ firewall-cmd --permanent --list-port
 #杀死进程
 kill -9 26993
 #批量杀死进程
-ps -ef | grep firefox | grep -v grep | awk '{print "kill -9 "$2}'|sh
-#列出了当前主机中运行的进程中包含firefox关键字的进程
-ps -ef | grep firefox | grep -v grep    
+ps -ef | grep dotnet | grep -v grep | awk '{print "kill -9 "$2}'|sh
+#列出了当前主机中运行的进程中包含dotnet关键字的进程
+ps -ef | grep dotnet | grep -v grep    
 #列出了要kill掉这些进程的命令，并将之打印在了屏幕上 
-ps -ef | grep firefox | grep -v grep | awk '{print "kill -9 "$2}'
+ps -ef | grep dotnet | grep -v grep | awk '{print "kill -9 "$2}'
 #后面加上|sh后，则执行这些命令，进而杀掉了这些进程
-ps -ef | grep firefox | grep -v grep | awk '{print "kill -9 "$2}' | sh
+ps -ef | grep dotnet | grep -v grep | awk '{print "kill -9 "$2}' | sh
 
 #防火墙相关
 systemctl status firewalld.service #查看防火墙状态
