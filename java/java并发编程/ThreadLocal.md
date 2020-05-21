@@ -8,3 +8,92 @@
 
 ​		**ThreadLocal只是一个工具类，他为用户提供get、set、remove接口操作实际存放本地变量的threadLocals（调用线程的成员变量）**
 
+​		每个线程内部有一个名为threadLocals的成员变量，该变量的类型为ThreadLocal.ThreadLocalMap类型（类似于一个HashMap），其中的key为当前定义的ThreadLocal变量的this引用，value为我们使用set方法设置的值。每个线程的本地变量存放在自己的本地内存变量threadLocals中，如果当前线程一直不消亡，那么这些本地变量就会一直存在（所以可能会导致内存溢出），因此使用完毕需要将其remove掉。
+
+### 二、源码
+
+1. set方法源码
+
+```java
+public void set(T value) {
+    //(1)获取当前线程（调用者线程）
+    Thread t = Thread.currentThread();
+    //(2)以当前线程作为key值，去查找对应的线程变量，找到对应的map
+    ThreadLocalMap map = getMap(t);
+    //(3)如果map不为null，就直接添加本地变量，key为当前线程，值为添加的本地变量值
+    if (map != null)
+        map.set(this, value);
+    //(4)如果map为null，说明首次添加，需要首先创建出对应的map
+    else
+        createMap(t, value);
+}
+```
+
+在上面的代码中，(2)处调用getMap方法获得当前线程对应的threadLocals(参照上面的图示和文字说明)，该方法代码如下
+
+```java
+ThreadLocalMap getMap(Thread t) {
+    return t.threadLocals; //获取线程自己的变量threadLocals，并绑定到当前调用线程的成员变量threadLocals上
+}
+```
+
+如果调用getMap方法返回值不为null，就直接将value值设置到threadLocals中（key为当前线程引用，值为本地变量）；如果getMap方法返回null说明是第一次调用set方法（前面说到过，threadLocals默认值为null，只有调用set方法的时候才会创建map），这个时候就需要调用createMap方法创建threadLocals，该方法如下所示
+
+```java
+void createMap(Thread t, T firstValue) {
+    t.threadLocals = new ThreadLocalMap(this, firstValue);
+}
+```
+
+2. get方法源码
+
+在get方法的实现中，首先获取当前调用者线程，如果当前线程的threadLocals不为null，就直接返回当前线程绑定的本地变量值，否则执行setInitialValue方法初始化threadLocals变量。在setInitialValue方法中，类似于set方法的实现，都是判断当前线程的threadLocals变量是否为null，是则添加本地变量（这个时候由于是初始化，所以添加的值为null），否则创建threadLocals变量，同样添加的值为null。
+
+```java
+public T get() {
+    //(1)获取当前线程
+    Thread t = Thread.currentThread();
+    //(2)获取当前线程的threadLocals变量
+    ThreadLocalMap map = getMap(t);
+    //(3)如果threadLocals变量不为null，就可以在map中查找到本地变量的值
+    if (map != null) {
+        ThreadLocalMap.Entry e = map.getEntry(this);
+        if (e != null) {
+            @SuppressWarnings("unchecked")
+            T result = (T)e.value;
+            return result;
+        }
+    }
+    //(4)执行到此处，threadLocals为null，调用该更改初始化当前线程的threadLocals变量
+    return setInitialValue();
+}
+
+private T setInitialValue() {
+    //protected T initialValue() {return null;}
+    T value = initialValue();
+    //获取当前线程
+    Thread t = Thread.currentThread();
+    //以当前线程作为key值，去查找对应的线程变量，找到对应的map
+    ThreadLocalMap map = getMap(t);
+    //如果map不为null，就直接添加本地变量，key为当前线程，值为添加的本地变量值
+    if (map != null)
+        map.set(this, value);
+    //如果map为null，说明首次添加，需要首先创建出对应的map
+    else
+        createMap(t, value);
+    return value;
+}
+```
+
+3. remove方法源码
+
+```java
+public void remove() {
+    //获取当前线程绑定的threadLocals
+     ThreadLocalMap m = getMap(Thread.currentThread());
+     //如果map不为null，就移除当前线程中指定ThreadLocal实例的本地变量
+     if (m != null)
+         m.remove(this);
+ }
+```
+
