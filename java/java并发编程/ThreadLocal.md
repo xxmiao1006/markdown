@@ -97,3 +97,67 @@ public void remove() {
  }
 ```
 
+### 三. 获取父线程的本地变量值
+
+​		如何让子线程获取到父线程的ThreadLocal，其实在线程中除了ThreadLocal外还有InheritableThreadLocal，顾名思义，可继承的线程变量表，可以让子线程获取到父线程中ThreadLocal的值
+
+```c#
+public class BaseTest {
+
+    public static  final InheritableThreadLocal<String> inheritableThreadLocal = new InheritableThreadLocal<>();
+    public static final ThreadLocal<String> threadLocal = new ThreadLocal<>();
+
+    public static void main(String[] args) {
+        inheritableThreadLocal.set("Inheritable hello");
+        threadLocal.set("hello");
+        new Thread(()->{
+            System.out.println(String.format("子线程可继承值：%s",inheritableThreadLocal.get()));
+            System.out.println(String.format("子线程值：%s",threadLocal.get()));
+            new Thread(()->{
+                System.out.println(String.format("孙子线程可继承值：%s",inheritableThreadLocal.get()));
+                System.out.println(String.format("孙子线程值：%s",threadLocal.get()));
+            }).start();
+
+        }).start();
+
+
+    }
+```
+
+
+
+```c#
+/* ThreadLocal values pertaining to this thread. This map is maintained
+     * by the ThreadLocal class. */
+    ThreadLocal.ThreadLocalMap threadLocals = null;
+
+    /*
+     * InheritableThreadLocal values pertaining to this thread. This map is
+     * maintained by the InheritableThreadLocal class.
+     */
+    ThreadLocal.ThreadLocalMap inheritableThreadLocals = null;
+```
+
+如果允许new的线程继承当前线程的threadlocalMap，那么new的线程会copy一份当前线程也就是父线程的inheritableThreadLocals 。这儿也可以说明继承有两条件，**new的线程允许继承(默认允许)，父线程的inheritableThreadLocals 不为null**
+
+```c#
+Thread parent = currentThread();      
+//省略代码  
+if (inheritThreadLocals && parent.inheritableThreadLocals != null)
+            this.inheritableThreadLocals =
+                ThreadLocal.createInheritedMap(parent.inheritableThreadLocals);
+```
+
+**这儿要注意不管是创建ThreadLocal还是inheritableThreadLocals(如果父线程没有) 的ThreadLocalMap都是在Threadlocal.set方法的时候创建的，即懒加载**
+
+```c#
+public void set(T value) {
+        Thread t = Thread.currentThread();
+        ThreadLocalMap map = getMap(t);
+        if (map != null)
+            map.set(this, value);
+        else
+            createMap(t, value);
+    }
+```
+

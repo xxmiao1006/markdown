@@ -74,3 +74,45 @@ where table_name = '表名'
 
 
 
+### efcore 池化
+
+```c#
+//services.AddDbContext<efosiotContext>(options => options.UseSqlServer(EnviVariableHelper.hyd_db_efosiot));
+
+ services.AddDbContextPool<efosiotContext>(options => options.UseSqlServer(EnviVariableHelper.hyd_db_efosiotdata), poolSize: 128);
+```
+
+连接池的最大数量要小于数据库的最大连接数
+
+注意:池化的dbcontext有且只能有一个包含DbContextOptions参数的构造函数，否则在提示池化失败
+
+```c#
+System.InvalidOperationException: The DbContext of type 'efosiotContext' cannot be pooled because it does not have a single public constructor accepting a single parameter of type DbContextOptions.
+```
+
+```c#
+var result = Parallel.For(0, 100, (i, state) =>
+            {
+                Console.WriteLine("i:{0}, thread id: {1}", i, Thread.CurrentThread.ManagedThreadId);
+
+                var data = client.IotGetList(new IotGetListRequest { SelectType = 1 });
+
+                //var reply = client.SayHelloAsync(new HelloRequest { Name = "grpc---" + Thread.CurrentThread.ManagedThreadId, Sleep = 15000 }, new Metadata { { "header", "11" } });
+                //Console.WriteLine("Greeter 服务返回数据: " + reply.ResponseAsync.Result.Message);
+                //if (i > 10)
+                //    state.Break();
+
+                //Thread.Sleep(10);
+            });
+```
+
+
+
+[dbcontext为何只能有一个包含dbContextOptions参数的构造函数](https://blog.csdn.net/sD7O95O/article/details/105548002)
+
+[ef core异步](https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/)
+
+[asp.net core中使用efcore](https://docs.microsoft.com/zh-cn/aspnet/core/data/ef-rp/intro?view=aspnetcore-3.1&tabs=visual-studio)
+
+[c# 异步](https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/)
+
