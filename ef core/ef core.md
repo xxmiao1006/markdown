@@ -70,6 +70,14 @@ select dbid, name AS DB_NAME from master..sysdatabases where sid <> 0x01
 select column_name,data_type from information_schema.columns
 where table_name = '表名'
 
+--
+begin transaction tr_basicsys
+
+if @@ERROR!=0
+   rollback transaction
+   else
+commit transaction tr_basicsys
+
 ```
 
 
@@ -108,6 +116,12 @@ var result = Parallel.For(0, 100, (i, state) =>
 
 
 
+```c#
+await Task.WhenAll(eggsTask, baconTask, toastTask);
+```
+
+
+
 [dbcontext为何只能有一个包含dbContextOptions参数的构造函数](https://blog.csdn.net/sD7O95O/article/details/105548002)
 
 [ef core异步](https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/)
@@ -115,4 +129,3 @@ var result = Parallel.For(0, 100, (i, state) =>
 [asp.net core中使用efcore](https://docs.microsoft.com/zh-cn/aspnet/core/data/ef-rp/intro?view=aspnetcore-3.1&tabs=visual-studio)
 
 [c# 异步](https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/)
-
