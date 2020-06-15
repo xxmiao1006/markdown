@@ -66,6 +66,14 @@ root@ba267838cc1b:/# ps
 
 可见，容器中仅运行了指定的 bash 应用。这种特点使得 Docker 对资源的利用率极高，是货真价实的轻量级虚拟化。
 
+```bash
+docker run -d --restart=always --name #设置容器名 使用的镜像（上面命令  --name后面两个参数根据实际情况自行修改）
+#修改已有容器，使用update
+docker update --restart=always e58
+```
+
+
+
 ### 四. 后台运行
 
 更多的时候，需要让 Docker 在后台运行而不是直接把执行命令的结果输出在当前宿主机下。此时，可以通过添加 `-d` 参数来实现。
