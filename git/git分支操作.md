@@ -105,6 +105,7 @@ git tag -d 标签名 #删除本地标签
 git push origin 标签名 #推送标签到远程仓库
 git push origin --tags #推送所有标签到远程仓库
 git push origin :refs/tags/标签名 #从远程仓库中删除标签
+git pull origin master --allow-unrelated-histories #强制合并不相关仓库
 
 #常规操作：
 git push origin test #推送本地分支到远程仓库
