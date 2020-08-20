@@ -61,6 +61,17 @@ public override async Task SayHellos(HelloRequest request,
 ```c#
 var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Greeter.GreeterClient(channel);
+
+//忽略ssl证书
+var channel = GrpcChannel.ForAddress(HYD_GRPCSERVICES_CORE, new GrpcChannelOptions
+            {
+                HttpClient = new HttpClient(new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                })
+            });
+
+            var client = new CoreDataQueryer.CoreDataQueryerClient(channel);
 ```
 
 创建一个客户端，客户端会绑定一个端口，当使用同一个客户端发送请求时，端口是一样的，并且不会有端口占用的问题。
