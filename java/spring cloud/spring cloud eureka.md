@@ -111,7 +111,21 @@ eureka:
 
 ```
 
+自我保护机制，Eureka Server在运行期间，会统计心跳失败的比例在15分钟之内是否低于85%，如果出现低于的情况（在单机调试的时候很容易满足，实际在生产环境上通常是由于网络不稳定导致）。
 
+解决办法：
+
+添加如下配置，关闭自我保护
+
+Eureka server application.yml
+
+![img](https://img1.sycdn.imooc.com/5be4e46d0001dd0f06000076.jpg)
+
+Service application.yml
+
+![img](https://img3.sycdn.imooc.com/5be4e46e0001a84c06000090.jpg)
+
+Spring Cloud Eureka的自我保护机制：首先对Eureka注册中心需要了解的是Eureka各个节点都是平等的，没有ZK中角色的概念， 即使N-1个节点挂掉也不会影响其他节点的正常运行。默认情况下，如果Eureka Server在一定时间内（默认90秒）没有接收到某个微服务实例的心跳，Eureka Server将会移除该实例。但是当网络分区故障发生时，微服务与Eureka Server之间无法正常通信，而微服务本身是正常运行的，此时不应该移除这个微服务，所以引入了自我保护。
 
 
 
