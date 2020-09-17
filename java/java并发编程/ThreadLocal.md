@@ -1,6 +1,6 @@
 ## ThreadLocal
 
-### 一、ThreadLocal简介
+### 一. ThreadLocal简介
 
 ​		多线程访问同一个共享变量的时候容易出现并发问题，特别是多个线程对一个变量进行写入的时候，为了保证线程安全，一般使用者在访问共享变量的时候需要进行额外的同步措施才能保证线程安全性。ThreadLocal是除了加锁这种同步方式之外的一种保证一种规避多线程访问出现线程不安全的方法，当我们在创建一个变量后，如果每个线程对其进行访问的时候访问的都是线程自己的变量这样就不会存在线程不安全问题。
 
@@ -10,7 +10,7 @@
 
 ​		每个线程内部有一个名为threadLocals的成员变量，该变量的类型为ThreadLocal.ThreadLocalMap类型（类似于一个HashMap），**ThreadLocalMap使用了开放寻址法解决hash冲突（当数据量较小，装载因子较小时，适合采用开放寻址法）**，其中的key为当前定义的ThreadLocal变量的this引用，value为我们使用set方法设置的值。每个线程的本地变量存放在自己的本地内存变量threadLocals中，如果当前线程一直不消亡，那么这些本地变量就会一直存在（所以可能会导致内存溢出），因此使用完毕需要将其remove掉。
 
-### 二、源码
+### 二. 源码
 
 1. set方法源码
 
@@ -159,5 +159,180 @@ public void set(T value) {
         else
             createMap(t, value);
     }
+```
+
+### 四. ThreadLocalMap
+
+threadLocalMap是Thread的一个内部类，底层实现是一个继承了WeakReference类的Entry数组，默认的初始化容量是`INITIAL_CAPACITY = 16 ` ,Threshold为 `length * 2\3`
+
+```java
+static class ThreadLocalMap {
+
+        /**
+         * The entries in this hash map extend WeakReference, using
+         * its main ref field as the key (which is always a
+         * ThreadLocal object).  Note that null keys (i.e. entry.get()
+         * == null) mean that the key is no longer referenced, so the
+         * entry can be expunged from table.  Such entries are referred to
+         * as "stale entries" in the code that follows.
+         */
+        static class Entry extends WeakReference<ThreadLocal<?>> {
+            /** The value associated with this ThreadLocal. */
+            Object value;
+
+            Entry(ThreadLocal<?> k, Object v) {
+                //这里调用父类的方法把referent的值置为key，调用的remove方法时会置为null
+                super(k);
+                value = v;
+            }
+        }
+    
+    	/**
+         * The initial capacity -- MUST be a power of two.
+         */
+        private static final int INITIAL_CAPACITY = 16;
+
+        /**
+         * The table, resized as necessary.
+         * table.length MUST always be a power of two.
+         */
+        private Entry[] table;
+    
+    	/**
+         * Set the resize threshold to maintain at worst a 2/3 load factor.
+         */
+        private void setThreshold(int len) {
+            threshold = len * 2 / 3;
+        }
+}
+```
+
+比较重要的就是其中的get,set方法:
+
+* set(ThreadLocal<?> key, Object value)
+
+```java
+        private void set(ThreadLocal<?> key, Object value) {
+
+            // We don't use a fast path as with get() because it is at
+            // least as common to use set() to create new entries as
+            // it is to replace existing ones, in which case, a fast
+            // path would fail more often than not.
+
+            Entry[] tab = table;
+            int len = tab.length;
+            //将key和数组长度减一进行按位与求下标
+            int i = key.threadLocalHashCode & (len-1);
+			
+            //tab[i]不为null，则从i开始，一直找到一个为null或key值相等的位置插入或替换
+            for (Entry e = tab[i];
+                 e != null;
+                 e = tab[i = nextIndex(i, len)]) {
+                //referent的值 如果调用过remove方法为null，否则为key的值
+                ThreadLocal<?> k = e.get();
+					
+                //如果之前这个key有值，则直接替换
+                if (k == key) {
+                    e.value = value;
+                    return;
+                }
+				
+                //如果找到一个referent为空的stale entry  替换掉（注意，这里不仅是替换掉值，将整个entry替换掉）
+                if (k == null) {
+                    replaceStaleEntry(key, value, i);
+                    return;
+                }
+            }
+
+            //说明e为null，则代表这个下标没有entry，直接将tab[i]指向新增的entry对象
+            tab[i] = new Entry(key, value);
+            int sz = ++size;
+            if (!cleanSomeSlots(i, sz) && sz >= threshold)
+                rehash();
+        }
+```
+
+
+
+* getEntry(ThreadLocal<?> key)
+
+```java
+		//通过ThreadLocal获取本地变量的方法
+        private Entry getEntry(ThreadLocal<?> key) {
+            //将ThreadLocal的hashCode和table的长度减一进行按位与，得到数组下标
+            int i = key.threadLocalHashCode & (table.length - 1);
+            //通过下标拿到entry对象
+            Entry e = table[i];
+            //因为ThreadLocalMap解决hash冲突的方法是开发寻址法，这里判断 如果entry对象不为空，并且key相等，
+            //则认为是我们要查找的对象，返回，如果key值不相等，那就调用另一个方法按数组下标往下找
+            if (e != null && e.get() == key)
+                return e;
+            else
+                return getEntryAfterMiss(key, i, e);
+        }
+
+		//当hash值计算出来的下标相等，key不相等，则调用该方法往下找
+        private Entry getEntryAfterMiss(ThreadLocal<?> key, int i, Entry e) {
+            Entry[] tab = table;
+            int len = tab.length;
+			
+            //这里可以看的，往下找的逻辑是数组下标不停的+1，一直到取出来的entry为空则停止查找
+            //没找到返回null；找到返回entry对象
+            while (e != null) {
+                ThreadLocal<?> k = e.get();
+                //key相等，找到了 返回entry对象
+                if (k == key)
+                    return e;
+                //这里注意下，如果这里找到的entry对象引用为空了，那么会认为这个entry是一个stale entry
+                //即过时的对象，会调用expungeStaleEntry释放掉该对象，并进行rehash
+                if (k == null)
+                    expungeStaleEntry(i);
+                else//索引加一，继续往下找
+                    i = nextIndex(i, len);
+                e = tab[i];
+            }
+            return null;
+        }
+
+//清除hash表里过时的entry
+ private int expungeStaleEntry(int staleSlot) {
+            Entry[] tab = table;
+            int len = tab.length;
+
+            // expunge entry at staleSlot  清除过时的entry
+            tab[staleSlot].value = null;
+            tab[staleSlot] = null;
+            size--;
+
+            // Rehash until we encounter null  进行rehash，直到tab[i]为null。
+     		//如果不进行rehash，会导致后面得数据查找不到！！！中间会有个null断层
+            Entry e;
+            int i;
+            for (i = nextIndex(staleSlot, len);
+                 //往下找下一个数据，知道tab[i]不为空
+                 (e = tab[i]) != null;
+                 i = nextIndex(i, len)) {
+                ThreadLocal<?> k = e.get();
+                //如果还有过时entry，也会进行清除
+                if (k == null) {
+                    e.value = null;
+                    tab[i] = null;
+                    size--;
+                } else {
+                    //不为过时数据进行rehash
+                    int h = k.threadLocalHashCode & (len - 1);
+                    if (h != i) {
+                        tab[i] = null;
+
+                        // Unlike Knuth 6.4 Algorithm R, we must scan until
+                        // null because multiple entries could have been stale.
+                        while (tab[h] != null)
+                            h = nextIndex(h, len);
+                        tab[h] = e;
+                    }
+                }
+            }
+            return i;
+        }
 ```
 
