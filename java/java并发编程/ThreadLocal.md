@@ -18,9 +18,9 @@
 public void set(T value) {
     //(1)获取当前线程（调用者线程）
     Thread t = Thread.currentThread();
-    //(2)以当前线程作为key值，去查找对应的线程变量，找到对应的map
+    //(2)以当前ThreadLocal作为key值，去查找对应的线程变量，找到对应的map
     ThreadLocalMap map = getMap(t);
-    //(3)如果map不为null，就直接添加本地变量，key为当前线程，值为添加的本地变量值
+    //(3)如果map不为null，就直接添加本地变量，key为当前ThreadLocal对象，值为添加的本地变量值
     if (map != null)
         map.set(this, value);
     //(4)如果map为null，说明首次添加，需要首先创建出对应的map
@@ -37,7 +37,7 @@ ThreadLocalMap getMap(Thread t) {
 }
 ```
 
-如果调用getMap方法返回值不为null，就直接将value值设置到threadLocals中（key为当前线程引用，值为本地变量）；如果getMap方法返回null说明是第一次调用set方法（前面说到过，threadLocals默认值为null，只有调用set方法的时候才会创建map），这个时候就需要调用createMap方法创建threadLocals，该方法如下所示
+如果调用getMap方法返回值不为null，就直接将value值设置到threadLocals中（key为当前ThreadLocal，值为本地变量）；如果getMap方法返回null说明是第一次调用set方法（前面说到过，threadLocals默认值为null，只有调用set方法的时候才会创建map），这个时候就需要调用createMap方法创建threadLocals，该方法如下所示
 
 ```java
 void createMap(Thread t, T firstValue) {
@@ -164,6 +164,8 @@ public void set(T value) {
 ### 四. ThreadLocalMap
 
 threadLocalMap是Thread的一个内部类，底层实现是一个继承了WeakReference类的Entry数组，默认的初始化容量是`INITIAL_CAPACITY = 16 ` ,Threshold为 `length * 2\3`
+
+Entry继承了弱引用，所以此时作为key的ThreadLocal在这里是弱引用，之所以用弱引用的原因是：当栈中对new ThreadLocal()的强引用td消失时，new ThreadLocal() 应该被GC，而如果此时作为key的ThreadLocal不是弱引用而是强引用，则会导致堆中的new ThreadLocal()不能被回收。很容易发生内存泄漏。
 
 ```java
 static class ThreadLocalMap {
