@@ -820,7 +820,7 @@ java -jar spring-boot-02-config-02-0.0.1-SNAPSHOT.jar --server.port=8087  --serv
 
     ```
 
-    ​
+    
 
 **==将 类路径下  META-INF/spring.factories 里面配置的所有EnableAutoConfiguration的值加入到了容器中；==**
 
@@ -940,7 +940,7 @@ org.springframework.boot.autoconfigure.webservices.WebServicesAutoConfiguration
 @ConditionalOnClass(CharacterEncodingFilter.class)  //判断当前项目有没有这个类CharacterEncodingFilter；SpringMVC中进行乱码解决的过滤器；
 
 @ConditionalOnProperty(prefix = "spring.http.encoding", value = "enabled", matchIfMissing = true)  //判断配置文件中是否存在某个配置  spring.http.encoding.enabled；如果不存在，判断也是成立的
-//即使我们配置文件中不配置pring.http.encoding.enabled=true，也是默认生效的；
+//即使我们配置文件中不配置spring.http.encoding.enabled=true，也是默认生效的；
 public class HttpEncodingAutoConfiguration {
   
   	//他已经和SpringBoot的配置文件映射了
@@ -1718,7 +1718,7 @@ Spring Boot 自动配置好了SpringMVC
 
 - Custom `Favicon` support (see below).  favicon.ico
 
-  ​
+  
 
 - 自动注册了 of `Converter`, `GenericConverter`, `Formatter` beans.
 
@@ -1743,7 +1743,7 @@ Spring Boot 自动配置好了SpringMVC
 
     ==自己给容器中添加HttpMessageConverter，只需要将自己的组件注册容器中（@Bean,@Component）==
 
-    ​
+    
 
 - Automatic registration of `MessageCodesResolver` (see below).定义错误代码生成规则
 
