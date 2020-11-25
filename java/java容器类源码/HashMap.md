@@ -7,35 +7,35 @@ hashmap使用了链表来解决hash冲突的问题，在1.8后又对链表长度
 ### 1. 变量
 
 ```java
-	//默认容量  16
-    static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
-	
-	//最大容量
-    static final int MAXIMUM_CAPACITY = 1 << 30;
+//默认容量  16
+static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
-    //默认的负载因子值 0.75（据说这样会符合泊松分布）
-    static final float DEFAULT_LOAD_FACTOR = 0.75f;
+//最大容量
+static final int MAXIMUM_CAPACITY = 1 << 30;
 
-    //树化阈值
-    static final int TREEIFY_THRESHOLD = 8;
+//默认的负载因子值 0.75（据说这样会符合泊松分布）
+static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
-    //树化还原链表阈值
-    static final int UNTREEIFY_THRESHOLD = 6;
+//树化阈值
+static final int TREEIFY_THRESHOLD = 8;
 
-    //可以树化的最小容量
-    static final int MIN_TREEIFY_CAPACITY = 64;
+//树化还原链表阈值
+static final int UNTREEIFY_THRESHOLD = 6;
 
-	//底层实现   node数组  长度总是2的次幂
-	transient Node<K,V>[] table;
+//可以树化的最小容量
+static final int MIN_TREEIFY_CAPACITY = 64;
 
-	//实际长度，map中key-value键值对个数
-    transient int size;
+//底层实现   node数组  长度总是2的次幂
+transient Node<K,V>[] table;
 
-	//下次扩容的阈值 (capacity * load factory)
-    int threshold;
+//实际长度，map中key-value键值对个数
+transient int size;
 
-	//负载因子 默认0.75
-    final float loadFactor;
+//下次扩容的阈值 (capacity * load factory)
+int threshold;
+
+//负载因子 默认0.75
+final float loadFactor;
 
 ```
 
@@ -105,110 +105,110 @@ hashmap使用了链表来解决hash冲突的问题，在1.8后又对链表长度
 //可以看到是将key值的hashcode值和hashcode值右移16位进行按位与操作，这样可以使高位和地位都参与运算
 //使得到的hash值更均匀
 //据说一个好的hash计算方法应该符合泊松分布= =！（hashmap源码注释）
-	static final int hash(Object key) {
-        	int h;
-        	return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
-	}
+static final int hash(Object key) {
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
 
 
 //这个方法是返回容量最近的2次幂，，如6->8   12->16
 //这个方法能将你输入的数的二进制数从等于1的最高位开始到最低位都变成1，最后返回再+1就变成了2的次幂值
-    static final int tableSizeFor(int cap) {
-        int n = cap - 1;
-        n |= n >>> 1;
-        n |= n >>> 2;
-        n |= n >>> 4;
-        n |= n >>> 8;
-        n |= n >>> 16;
-        return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
-    }
+static final int tableSizeFor(int cap) {
+    int n = cap - 1;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
 
 //hashmap的扩容方法    重点
-    final Node<K,V>[] resize() {
-        Node<K,V>[] oldTab = table;
-        //旧的容量
-        int oldCap = (oldTab == null) ? 0 : oldTab.length;
-        //旧的扩容阈值
-        int oldThr = threshold;
-        int newCap, newThr = 0;
-        //第一种情况：扩容，旧的容量大于0
-        if (oldCap > 0) {
-            //大于最大容量则直接返回
-            if (oldCap >= MAXIMUM_CAPACITY) {
-                threshold = Integer.MAX_VALUE;
-                return oldTab;
-            }
-            //将容量和扩容阈值左移一位，扩大 为原来的两倍
-            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
-                     oldCap >= DEFAULT_INITIAL_CAPACITY)
-                newThr = oldThr << 1; // double threshold
-        }//第二种情况 初始化，（调用了单个构造函数的情况，传入了初始化容量，进行初始化）
-        else if (oldThr > 0) // initial capacity was placed in threshold
-            //这个时候的oldThr可以从之前的构造函数看到threshold = tableSizeFor(initialCapacity)
-            newCap = oldThr;
-        else {               // zero initial threshold signifies using defaults
-            //第三种情况 初始化，使用默认无参构造函数初始化的时候，容量和扩容阈值都使用默认值
-			newCap = DEFAULT_INITIAL_CAPACITY;
-            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+final Node<K,V>[] resize() {
+    Node<K,V>[] oldTab = table;
+    //旧的容量
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    //旧的扩容阈值
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    //第一种情况：扩容，旧的容量大于0
+    if (oldCap > 0) {
+        //大于最大容量则直接返回
+        if (oldCap >= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
         }
-        //初始化的时候计算新的扩容阈值
-        if (newThr == 0) {
-            float ft = (float)newCap * loadFactor;
-            newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
-                      (int)ft : Integer.MAX_VALUE);
-        }
-        //赋值，扩容阈值
-        threshold = newThr;
-        
-        //这里可以看到，hashMap扩容是申请一个两倍大小的数组
-        //将之前的数据一个个重新进行计算再放进去，非常耗时间
-        @SuppressWarnings({"rawtypes","unchecked"})
-        Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
-        table = newTab;
-        if (oldTab != null) {
-            for (int j = 0; j < oldCap; ++j) {
-                Node<K,V> e;
-                if ((e = oldTab[j]) != null) {
-                    oldTab[j] = null;
-                    if (e.next == null)
-                        newTab[e.hash & (newCap - 1)] = e;
-                    else if (e instanceof TreeNode)
-                        ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
-                    else { // preserve order
-                        Node<K,V> loHead = null, loTail = null;
-                        Node<K,V> hiHead = null, hiTail = null;
-                        Node<K,V> next;
-                        do {
-                            next = e.next;
-                            if ((e.hash & oldCap) == 0) {
-                                if (loTail == null)
-                                    loHead = e;
-                                else
-                                    loTail.next = e;
-                                loTail = e;
-                            }
-                            else {
-                                if (hiTail == null)
-                                    hiHead = e;
-                                else
-                                    hiTail.next = e;
-                                hiTail = e;
-                            }
-                        } while ((e = next) != null);
-                        if (loTail != null) {
-                            loTail.next = null;
-                            newTab[j] = loHead;
+        //将容量和扩容阈值左移一位，扩大 为原来的两倍
+        else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
+                 oldCap >= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr << 1; // double threshold
+    }//第二种情况 初始化，（调用了单个构造函数的情况，传入了初始化容量，进行初始化）
+    else if (oldThr > 0) // initial capacity was placed in threshold
+        //这个时候的oldThr可以从之前的构造函数看到threshold = tableSizeFor(initialCapacity)
+        newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+        //第三种情况 初始化，使用默认无参构造函数初始化的时候，容量和扩容阈值都使用默认值
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    }
+    //初始化的时候计算新的扩容阈值
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
+                  (int)ft : Integer.MAX_VALUE);
+    }
+    //赋值，扩容阈值
+    threshold = newThr;
+
+    //这里可以看到，hashMap扩容是申请一个两倍大小的数组
+    //将之前的数据一个个重新进行计算再放进去，非常耗时间
+    @SuppressWarnings({"rawtypes","unchecked"})
+    Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) {
+        for (int j = 0; j < oldCap; ++j) {
+            Node<K,V> e;
+            if ((e = oldTab[j]) != null) {
+                oldTab[j] = null;
+                if (e.next == null)
+                    newTab[e.hash & (newCap - 1)] = e;
+                else if (e instanceof TreeNode)
+                    ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+                else { // preserve order
+                    Node<K,V> loHead = null, loTail = null;
+                    Node<K,V> hiHead = null, hiTail = null;
+                    Node<K,V> next;
+                    do {
+                        next = e.next;
+                        if ((e.hash & oldCap) == 0) {
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
                         }
-                        if (hiTail != null) {
-                            hiTail.next = null;
-                            newTab[j + oldCap] = hiHead;
+                        else {
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
                         }
+                    } while ((e = next) != null);
+                    if (loTail != null) {
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    }
+                    if (hiTail != null) {
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
                     }
                 }
             }
         }
-        return newTab;
     }
+    return newTab;
+}
 ```
 
 
