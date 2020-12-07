@@ -130,6 +130,12 @@ git rm -r --cached 文件/文件夹名字 #(. 忽略全部文件)
 git update-index --no-assume-unchanged file
 #拉取、上传免密码：
 git config --global credential.helper store
+
+#
+git remote add origin git@gitlab.eegrid.com:xiaoxm/efos-xhub-commons.git
+git add .
+git commit -m "Initial commit"
+git push -u origin master
 ```
 
 ### 四. demo

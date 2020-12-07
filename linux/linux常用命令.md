@@ -69,6 +69,11 @@ yum install bridge-utils
 
 #资源信息
 lscpu
+
+#搜索redis安装目录
+ps -ef|grep redis
+#得到了进程号 xxxx
+ls -l /proc/xxxx/cwd
 ```
 
 #### elasticsearch
