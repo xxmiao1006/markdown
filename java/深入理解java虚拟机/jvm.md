@@ -203,3 +203,65 @@ java 类加载需要经历以下 几个过程：
 
 3.长期存活的对象将直接进入老年代.，当 Eden 区没有足够的空间进行分配时，虚拟机会执行一次 Minor GC.Minor Gc 通常发生在新生代的 Eden 区，在这个区的对象生存期短，往往发生 Gc 的频率较高，回收速度比较快;Full Gc/Major GC 发生在老年代，一般情况下，触发老年代 GC的时候不会触发 Minor GC,但是通过配置，可以在 Full GC 之前进行一次 MinorGC 这样可以加快老年代的回收速度。
 
+
+
+```bash
+ jstat -gcutil pid 1000 10
+```
+
+ 查看 gc 情况,1000ms打印一次，打印10次
+
+```bash
+jcmd pid GC.class_stats
+
+jcmd pid GC.class_stats |awk '{print $13}'| sort | uniq -c |sort -r| head
+```
+
+这个命令可以查看 Metaspace 加载的到底是哪些类
+
+```bash
+jmap -clstats pid
+```
+
+这个可以查看类加载器的数据
+
+```bash
+jmap -histo pid > jmap.txt
+```
+
+该命令可以查看当前jvm内存里对象的实例数和占用内存数
+
+```bash
+jmap -heap pid  
+```
+
+jvm 默认使用的配置
+
+
+
+java获取内存dump的几种方式
+
+1、获取内存详情：**jmap -dump:format=b,file=name.dump pid**
+这种方式可以用 jvisualvm.exe 进行内存分析，或者采用 Eclipse Memory Analysis Tools (MAT)这个工具
+
+\2. 获取内存dump：  jmap -histo:live pid
+这种方式会先出发fullgc，所有如果不希望触发fullgc 可以使用jmap -histo pid
+
+3.第三种方式：jdk启动加参数：
+-XX:+HeapDumpBeforeFullGC 
+-XX:HeapDumpPath=/httx/logs/dump
+这种方式会产生dump日志，再通过jvisualvm.exe 或者Eclipse Memory Analysis Tools 工具进行分析
+
+
+
+
+
+cpu过高
+
+①通过 **top** 命令找到占用cpu最高的 **pid[进程id]** 
+
+②通过 **top -Hp pid** 查看进程中占用cpu过高的 **tid[线程id]** 
+
+③通过 **printf  '%x/n' tid**  把线程id转化为十六进制
+
+④通过 **jstack pid | grep tid -A 30** 定位线程堆栈信息

@@ -11,6 +11,9 @@ netstat -ntlp
 
 #查看已开放端口列表
 firewall-cmd --permanent --list-port 
+#开放防火墙某个端口
+sudo firewall-cmd --zone=public --add-port=3000/tcp --permanent
+sudo firewall-cmd --reload
 
 
 #杀死进程

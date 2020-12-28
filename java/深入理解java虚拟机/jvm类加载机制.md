@@ -24,3 +24,25 @@
 
   解析阶段是指**虚拟机将常量池中的符号引用替换为直接引用的过程**
 
+
+
+
+
+```java
+/*Map<String, String> apiModelProperMap = new HashMap();
+        Class<? extends Category> categoryClass = Category.class;
+        //拿到该类的所有字段
+        Field[] fields = categoryClass.getDeclaredFields();
+        for (int i = 0; i < fields.length; i++) {
+            //Field field=clazz.getDeclaredField(fields[i].getName());
+            boolean annotationPresent = fields[i].isAnnotationPresent(ApiModelProperty.class);
+            if (annotationPresent) {
+                // 获取注解值
+                String name = fields[i].getAnnotation(ApiModelProperty.class).value();
+                apiModelProperMap.put(fields[i].getName(), name);
+            }
+
+        }
+        String s = apiModelProperMap.get("");*/
+```
+
