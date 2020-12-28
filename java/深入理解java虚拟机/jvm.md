@@ -265,3 +265,21 @@ cpu过高
 ③通过 **printf  '%x/n' tid**  把线程id转化为十六进制
 
 ④通过 **jstack pid | grep tid -A 30** 定位线程堆栈信息
+
+
+
+打印 GC日志
+
+```bash
+-XX:+PrintGC 输出简要GC日志 
+-XX:+PrintGCDetails 输出详细GC日志 
+-Xloggc:gc.log  输出GC日志到文件
+-XX:+PrintGCTimeStamps 输出GC的时间戳（以JVM启动到当期的总时长的时间戳形式） 
+-XX:+PrintGCDateStamps 输出GC的时间戳（以日期的形式，如 2013-05-04T21:53:59.234+0800） 
+-XX:+PrintHeapAtGC 在进行GC的前后打印出堆的信息
+-verbose:gc
+-XX:+PrintReferenceGC 打印年轻代各个引用的数量以及时
+```
+
+
+
