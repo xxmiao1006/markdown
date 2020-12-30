@@ -205,39 +205,172 @@ java 类加载需要经历以下 几个过程：
 
 
 
+### jvm参数
+
+-Xmx3550m：设置JVM最大堆内存为3550M。
+
+-Xms3550m：设置JVM初始堆内存为3550M。此值可以设置与-Xmx相同，以避免每次垃圾回收完成后JVM重新分配内存。 
+
+-Xss128k：设置每个线程的栈大小。JDK5.0以后每个线程栈大小为1M，之前每个线程栈大小为256K。应当根据应用的线程所需内存大小进行调整。在相同物理内存下，减小这个值能生成更多的线程。但是操作系统对一个进程内的线程数还是有限制的，不能无限生成，经验值在3000~5000左右。需要注意的是：当这个值被设置的较大（例如>2MB）时将会在很大程度上降低系统的性能。 
+
+-Xmn2g：设置年轻代大小为2G。在整个堆内存大小确定的情况下，增大年轻代将会减小年老代，反之亦然。此值关系到JVM垃圾回收，对系统性能影响较大，官方推荐配置为整个堆大小的3/8。
+
+-XX:NewSize=1024m：设置年轻代初始值为1024M。
+
+-XX:MaxNewSize=1024m：设置年轻代最大值为1024M。
+
+-XX:PermSize=256m：设置持久代初始值为256M。
+
+-XX:MaxPermSize=256m：设置持久代最大值为256M。
+
+-XX:NewRatio=4：设置年轻代（包括1个Eden和2个Survivor区）与年老代的比值。表示年轻代比年老代为1:4。
+
+ -XX:SurvivorRatio=4：设置年轻代中Eden区与Survivor区的比值。表示2个Survivor区（JVM堆内存年轻代中默认有2个大小相等的Survivor区）与1个Eden区的比值为2:4，即1个Survivor区占整个年轻代大小的1/6。 -XX:MaxTenuringThreshold=7：表示一个对象如果在Survivor区（救助空间）移动了7次还没有被垃圾回收就进入年老代。如果设置为0的话，则年轻代对象不经过Survivor区，直接进入年老代，对于需要大量常驻内存的应用，这样做可以提高效率。如果将此值设置为一个较大值，则年轻代对象会在Survivor区进行多次复制，这样可以增加对象在年轻代存活时间，增加对象在年轻代被垃圾回收的概率，减少Full GC的频率，这样做可以在某种程度上提高服务稳定性。
+
+
+
+ JVM服务参数调优实战 
+
+大型网站服务器案例 承受海量访问的动态Web应用 
+
+服务器配置：8 CPU, 8G MEM, JDK 1.6.X 
+
+参数方案： -server -Xmx3550m -Xms3550m -Xmn1256m -Xss128k -XX:SurvivorRatio=6 -XX:MaxPermSize=256m -XX:ParallelGCThreads=8 -XX:MaxTenuringThreshold=0 -XX:+UseConcMarkSweepGC 
+
+调优说明： -Xmx 与 -Xms 相同以避免JVM反复重新申请内存。-Xmx 的大小约等于系统内存大小的一半，即充分利用系统资源，又给予系统安全运行的空间。 -Xmn1256m 设置年轻代大小为1256MB。此值对系统性能影响较大，Sun官方推荐配置年轻代大小为整个堆的3/8。 -Xss128k 设置较小的线程栈以支持创建更多的线程，支持海量访问，并提升系统性能。 -XX:SurvivorRatio=6 设置年轻代中Eden区与Survivor区的比值。系统默认是8，根据经验设置为6，则2个Survivor区与1个Eden区的比值为2:6，一个Survivor区占整个年轻代的1/8。 -XX:ParallelGCThreads=8 配置并行收集器的线程数，即同时8个线程一起进行垃圾回收。此值一般配置为与CPU数目相等。 -XX:MaxTenuringThreshold=0 设置垃圾最大年龄（在年轻代的存活次数）。如果设置为0的话，则年轻代对象不经过Survivor区直接进入年老代。对于年老代比较多的应用，可以提高效率；如果将此值设置为一个较大值，则年轻代对象会在Survivor区进行多次复制，这样可以增加对象再年轻代的存活时间，增加在年轻代即被回收的概率。根据被海量访问的动态Web应用之特点，其内存要么被缓存起来以减少直接访问DB，要么被快速回收以支持高并发海量请求，因此其内存对象在年轻代存活多次意义不大，可以直接进入年老代，根据实际应用效果，在这里设置此值为0。 -XX:+UseConcMarkSweepGC 设置年老代为并发收集。CMS（ConcMarkSweepGC）收集的目标是尽量减少应用的暂停时间，减少Full GC发生的几率，利用和应用程序线程并发的垃圾回收线程来标记清除年老代内存，适用于应用中存在比较多的长生命周期对象的情况。 
+
+内部集成构建服务器案例 
+
+高性能数据处理的工具应用 服务器配置：1 CPU, 4G MEM, JDK 1.6.X 
+
+参数方案： -server -XX:PermSize=196m -XX:MaxPermSize=196m -Xmn320m -Xms768m -Xmx1024m 
+
+调优说明： -XX:PermSize=196m -XX:MaxPermSize=196m 根据集成构建的特点，大规模的系统编译可能需要加载大量的Java类到内存中，所以预先分配好大量的持久代内存是高效和必要的。 -Xmn320m 遵循年轻代大小为整个堆的3/8原则。 -Xms768m -Xmx1024m 根据系统大致能够承受的堆内存大小设置即可。
+
+
+
+适用于起步阶段的个人网站  建议堆内存 1gb  可以使用串行SeriaIGC 建议使用并行 ParallelGC。
+有一定访问量的网站或者app 建议堆内存设置为2gb  建议使用并行 ParallelGC。
+并发适中的APp 或者普通的数据处理 建议堆内存4gb 老年代cms/新生代parnew
+适应于并发量高的app   建议使用堆内存 8g 或者16g 建议使用G1收集器 注重低延迟和吞吐量
+
+
+[jvm参数设置大全](https://www.cnblogs.com/marcotan/p/4256885.html)
+
+[JVM底层原理、四大垃圾回收算法详解(长文警告)](https://www.jianshu.com/p/9e6841a895b4) 
+
+
+
 ```bash
+ # 查看 gc 情况,1000ms打印一次，打印10次
  jstat -gcutil pid 1000 10
+ jstat -gc 71614 5000
+ 
+S0C：年轻代中第一个survivor（幸存区）的容量 （字节）
+S1C：年轻代中第二个survivor（幸存区）的容量 (字节)
+S0U ：年轻代中第一个survivor（幸存区）目前已使用空间 (字节)
+S1U ：年轻代中第二个survivor（幸存区）目前已使用空间 (字节)
+EC ：年轻代中Eden（伊甸园）的容量 (字节)
+EU ：年轻代中Eden（伊甸园）目前已使用空间 (字节)
+OC ：Old代的容量 (字节)
+OU ：Old代目前已使用空间 (字节)
+MC：metaspace(元空间)的容量 (字节)
+MU：metaspace(元空间)目前已使用空间 (字节)
+YGC ：从应用程序启动到采样时年轻代中gc次数
+YGCT ：从应用程序启动到采样时年轻代中gc所用时间(s)
+FGC ：从应用程序启动到采样时old代(全gc)gc次数
+FGCT ：从应用程序启动到采样时old代(全gc)gc所用时间(s)
+GCT：从应用程序启动到采样时gc用的总时间(s)
 ```
 
- 查看 gc 情况,1000ms打印一次，打印10次
+
 
 ```bash
+#这个命令可以查看 Metaspace 加载的到底是哪些类
 jcmd pid GC.class_stats
 
 jcmd pid GC.class_stats |awk '{print $13}'| sort | uniq -c |sort -r| head
 ```
 
-这个命令可以查看 Metaspace 加载的到底是哪些类
-
 ```bash
+#这个可以查看类加载器的数据
 jmap -clstats pid
 ```
 
-这个可以查看类加载器的数据
-
 ```bash
+#该命令可以查看当前jvm内存里对象的实例数和占用内存数 
 jmap -histo pid > jmap.txt
 ```
 
-该命令可以查看当前jvm内存里对象的实例数和占用内存数
-
 ```bash
+#jvm 服务JVM的GC和堆内存使用情况  https://www.cnblogs.com/zhanying999666/p/12188937.html
 jmap -heap pid  
+
+#G1
+Heap Configuration:   #堆配置情况 
+   MinHeapFreeRatio         = 40  #堆最小使用比例
+   MaxHeapFreeRatio         = 70  #堆最大使用比例
+   MaxHeapSize              = 8589934592 (8192.0MB)  #堆最大空间
+   NewSize                  = 1363144 (1.2999954223632812MB) #新生代初始化大小
+   MaxNewSize               = 5152702464 (4914.0MB)          #新生代可使用最大容量大小
+   OldSize                  = 5452592 (5.1999969482421875MB) #老生代大小
+   NewRatio                 = 2   #新生代比例
+   SurvivorRatio            = 8   #新生代与suvivor的占比
+   MetaspaceSize            = 21807104 (20.796875MB) #元数据空间初始大小
+   CompressedClassSpaceSize = 1073741824 (1024.0MB) #类指针压缩空间大小, 默认为1G
+   MaxMetaspaceSize         = 17592186044415 MB  #元数据空间的最大值, 超过此值就会触发 GC溢出( JVM会动态地改变此值)
+   G1HeapRegionSize         = 2097152 (2.0MB) #区块的大小
+
+Heap Usage:
+G1 Heap:
+   regions  = 4096  # G1区块初始化大小
+   capacity = 8589934592 (8192.0MB)  #G1区块最大可使用大小
+   used     = 1557972768 (1485.7986145019531MB)  #G1区块已使用内存
+   free     = 7031961824 (6706.201385498047MB)   #G1区块空闲内存
+   18.137190118432045% used     #G1区块使用比例
+G1 Young Generation:  #新生代
+Eden Space:  #Eden区空间
+   regions  = 670
+   capacity = 2699034624 (2574.0MB)
+   used     = 1405091840 (1340.0MB)
+   free     = 1293942784 (1234.0MB)
+   52.05905205905206% used
+Survivor Space: #Survivor区
+   regions  = 3
+   capacity = 6291456 (6.0MB)
+   used     = 6291456 (6.0MB)
+   free     = 0 (0.0MB)
+   100.0% used
+G1 Old Generation: #老生代
+   regions  = 72
+   capacity = 1589641216 (1516.0MB)
+   used     = 146589472 (139.79861450195312MB)
+   free     = 1443051744 (1376.2013854980469MB)
+   9.221544492213267% used
 ```
 
-jvm 默认使用的配置
+```bash
+# 查看JVM参数信息
+jinfo -flags [pid]
+
+Attaching to process ID 859, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 25.272-b10
+Non-default VM flags: -XX:CICompilerCount=2 -XX:CompressedClassSpaceSize=125829120 -XX:ConcGCThreads=1 -XX:G1HeapRegionSize=1048576 -XX:InitialHeapSize=268435456 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=268435456 -XX:MaxMetaspaceSize=134217728 -XX:MaxNewSize=160432128 -XX:MetaspaceSize=67108864 -XX:MinHeapDeltaBytes=1048576 -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:ThreadStackSize=512 -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC 
+Command line:  -XX:+PrintGCDetails -Xloggc:authoritygc.log -Xms256M -Xmx256M -Xss512k -XX:MetaspaceSize=64M -XX:MaxMetaspaceSize=128M -XX:+UseG1GC
+
+```
 
 
+
+
+
+1）首先配置JVM启动参数，让JVM在遇到OutOfMemoryError时自动生成Dump文件
+
+```bash
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/path
+```
 
 java获取内存dump的几种方式
 
@@ -266,6 +399,10 @@ cpu过高
 
 ④通过 **jstack pid | grep tid -A 30** 定位线程堆栈信息
 
+```
+jstack 28223 | grep -A30 6e48
+```
+
 
 
 打印 GC日志
@@ -277,9 +414,16 @@ cpu过高
 -XX:+PrintGCTimeStamps 输出GC的时间戳（以JVM启动到当期的总时长的时间戳形式） 
 -XX:+PrintGCDateStamps 输出GC的时间戳（以日期的形式，如 2013-05-04T21:53:59.234+0800） 
 -XX:+PrintHeapAtGC 在进行GC的前后打印出堆的信息
--verbose:gc
+-verbose:gc 控制台打印，打印到文件就不生效了
 -XX:+PrintReferenceGC 打印年轻代各个引用的数量以及时
 ```
 
 
 
+-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC
+
+[jvm G1 深度分析](https://blog.csdn.net/u013380694/article/details/83341913)
+
+[G1日志分析](https://www.cnblogs.com/yuanzipeng/p/13374690.html)
+
+[jvm 工具篇-（3）-G1-案例-调优过程](https://www.jianshu.com/p/bc42531b28f3)
