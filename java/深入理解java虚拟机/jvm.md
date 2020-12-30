@@ -422,8 +422,24 @@ jstack 28223 | grep -A30 6e48
 
 -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC
 
+
+
 [jvm G1 深度分析](https://blog.csdn.net/u013380694/article/details/83341913)
 
 [G1日志分析](https://www.cnblogs.com/yuanzipeng/p/13374690.html)
 
 [jvm 工具篇-（3）-G1-案例-调优过程](https://www.jianshu.com/p/bc42531b28f3)
+
+[堆内存常见的分配策略、 经典的垃圾收集器、CMS与G1收集器及二者的比较](https://www.cnblogs.com/jjfan0327/p/12795015.html)
+
+[java对象内存估算](https://cloud.tencent.com/developer/article/1552089)
+
+[HotSpot VM G1 垃圾回收的survivor 0区貌似永远是0](https://hllvm-group.iteye.com/group/topic/42352)
+
+
+
+年轻代进入老年代的三种情况
+
+* 大对象直接进入老年代
+* 长期存活的对象进入老年代（被移到survivor空间中，年龄为1，之后每熬过一次MinorGC,年龄加一，当年龄达到一定程度默认15岁时会被晋升到老年代）
+* 动态年龄判断（在survivor空间中相同年所有对象的大小总和大于survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，无需等到MaxTenuringThreshold中要求的年龄）。
