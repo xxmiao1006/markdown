@@ -281,9 +281,22 @@ YGCT ：从应用程序启动到采样时年轻代中gc所用时间(s)
 FGC ：从应用程序启动到采样时old代(全gc)gc次数
 FGCT ：从应用程序启动到采样时old代(全gc)gc所用时间(s)
 GCT：从应用程序启动到采样时gc用的总时间(s)
+
+ jstat -gcmetacapacity 859
+MCMN:最小元数据容量
+MCMX：最大元数据容量
+MC：当前元数据空间大小
+CCSMN：最小压缩类空间大小
+CCSMX：最大压缩类空间大小
+CCSC：当前压缩类空间大小
+YGC ：从应用程序启动到采样时年轻代中gc次数
+FGC ：从应用程序启动到采样时old代(全gc)gc次数
+FGCT ：从应用程序启动到采样时old代(全gc)gc所用时间(s)
+GCT：从应用程序启动到采样时gc用的总时间(s)
+
 ```
 
-
+[jvm 性能调优工具之 jstat](https://www.jianshu.com/p/213710fb9e40)
 
 ```bash
 #这个命令可以查看 Metaspace 加载的到底是哪些类
