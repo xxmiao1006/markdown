@@ -114,6 +114,157 @@ public void method() throws InterruptedException {
 
 而用synchronized修饰的话，当一个线程处于等待某个锁的状态，是无法被中断的，只有一直等待下去。
 
+
+
+condition
+
+```java
+package com.juctest;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * @author xxm
+ * @date 2021/1/12 15:05
+ */
+public class LockTest {
+    public static void main(String[] args) {
+
+        BoundBuffer buffer = new BoundBuffer();
+
+        new Thread(() -> {
+            for (int i = 0; i < 30; i++) {
+                try {
+                    buffer.put(i);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, "product").start();
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    buffer.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, "consumer1").start();
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    buffer.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, "consumer2").start();
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    buffer.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, "consumer3").start();
+    }
+}
+
+class BoundBuffer {
+
+    final Lock lock = new ReentrantLock();
+
+    final Condition empty = lock.newCondition();
+
+    final Condition full = lock.newCondition();
+
+    final int[] items = new int[20];
+
+    int putptr, takeptr, count;
+
+    public void put(int x) throws InterruptedException {
+        lock.lock();
+        try {
+            while (items.length == count) {
+                full.await();
+            }
+            items[putptr] = x;
+            System.out.println(Thread.currentThread().getName() + "生产了：" + x);
+            if (++putptr == items.length) {
+                putptr = 0;
+            }
+            count++;
+            empty.signalAll();
+
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /*public int take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == 0) {
+                empty.await();
+            }
+
+            int x = items[takeptr];
+            System.out.println(Thread.currentThread().getName() + "消费了：" + x);
+            if (++takeptr == items.length) {
+                takeptr = 0;
+            }
+
+            count--;
+            full.signalAll();
+            return x;
+
+
+        } finally {
+            lock.unlock();
+        }
+    }*/
+
+    public int take() throws InterruptedException {
+        int x = 0;
+        if (lock.tryLock()) {
+            try {
+                while (count == 0) {
+                    empty.await();
+                }
+
+                x = items[takeptr];
+                System.out.println(Thread.currentThread().getName() + "消费了：" + x);
+                if (++takeptr == items.length) {
+                    takeptr = 0;
+                }
+
+                count--;
+                full.signalAll();
+                return x;
+
+
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            System.out.println(Thread.currentThread().getName() + "没抢到: " + x);
+            return 0;
+        }
+    }
+
+
+}
+
+```
+
+
+
 #### 2. ReentrantLock
 
 ReentrantLock，意思是“可重入锁”，关于可重入锁的概念在下一节讲述。ReentrantLock是**唯一实现**了Lock接口的类，并且ReentrantLock提供了更多的方法。下面通过一些实例看具体看一下如何使用ReentrantLock。
