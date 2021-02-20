@@ -107,36 +107,36 @@ new SqlSessionFactoryBuilder().build(inputStream)  入口
 ->  org.apache.ibatis.builder.xml.XMLConfigBuilder#parseConfiguration  解析mybatis-config.xml里面的配置
 
 ```java
-  //解析配置
-  private void parseConfiguration(XNode root) {
+//解析配置
+private void parseConfiguration(XNode root) {
     try {
-      //分步骤解析
-      //issue #117 read properties first
-      //1.properties
-      propertiesElement(root.evalNode("properties"));
-      //2.类型别名
-      typeAliasesElement(root.evalNode("typeAliases"));
-      //3.插件
-      pluginElement(root.evalNode("plugins"));
-      //4.对象工厂
-      objectFactoryElement(root.evalNode("objectFactory"));
-      //5.对象包装工厂
-      objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
-      //6.设置
-      settingsElement(root.evalNode("settings"));
-      // read it after objectFactory and objectWrapperFactory issue #631
-      //7.环境
-      environmentsElement(root.evalNode("environments"));
-      //8.databaseIdProvider
-      databaseIdProviderElement(root.evalNode("databaseIdProvider"));
-      //9.类型处理器
-      typeHandlerElement(root.evalNode("typeHandlers"));
-      //10.映射器
-      mapperElement(root.evalNode("mappers"));
+        //分步骤解析
+        //issue #117 read properties first
+        //1.properties
+        propertiesElement(root.evalNode("properties"));
+        //2.类型别名
+        typeAliasesElement(root.evalNode("typeAliases"));
+        //3.插件
+        pluginElement(root.evalNode("plugins"));
+        //4.对象工厂
+        objectFactoryElement(root.evalNode("objectFactory"));
+        //5.对象包装工厂
+        objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+        //6.设置
+        settingsElement(root.evalNode("settings"));
+        // read it after objectFactory and objectWrapperFactory issue #631
+        //7.环境
+        environmentsElement(root.evalNode("environments"));
+        //8.databaseIdProvider
+        databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+        //9.类型处理器
+        typeHandlerElement(root.evalNode("typeHandlers"));
+        //10.映射器
+        mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
-      throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
+        throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
     }
-  }
+}
 ```
 
 这个方法将xml不同的节点解析出来后用不同的方法进行解析，下面以mapperElement(root.evalNode("mappers"))为例
@@ -462,11 +462,307 @@ public MappedStatement addMappedStatement(
 
 #### 源码解析: 执行
 
+sqlSession = sqlSessionFactory.openSession(); 入口
 
+根据之前我们得到了一个SqlSessionFactory对象，下一步就是要去获取SqlSession对象，这里会调用SqlSessionFactory.openSession()方法来获取，而openSession中实际上就是对SqlSession做了进一步的加工封装，包括增加了事务、执行器等
 
+```java
+private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
+    Transaction tx = null;
+    try {
+      final Environment environment = configuration.getEnvironment();
+      final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+      //通过事务工厂来产生一个事务
+      tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      //生成一个执行器(事务包含在执行器里)
+      final Executor executor = configuration.newExecutor(tx, execType);
+      //然后产生一个DefaultSqlSession
+      return new DefaultSqlSession(configuration, executor, autoCommit);
+    } catch (Exception e) {
+      //如果打开事务出错，则关闭它
+      closeTransaction(tx); // may have fetched a connection so lets call close()
+      throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);
+    } finally {
+      //最后清空错误上下文
+      ErrorContext.instance().reset();
+    }
+  }
+```
 
+到这里可以得出的小结论是，SqlSessionFactory对象中由于存在Configuration对象，所以它保存了**全局配置信息，以及初始化环境和DataSource**，而DataSource的作用就是用来开辟链接，当我们调用openSession方法时，就会开辟一个连接对象并传给SqlSession对象，交给SqlSession来**对数据库做相关操作**。
 
+MyBatis底层使用了动态代理，我们实际上调用的是MyBatis为我们生成的代理对象。我们在获取Mapper的时候，需要调用SqlSession的getMapper()方法，那么就从这里深入。
 
+sqlSession.getMapper(RoleMapper.class) ; 入口  最终会调用到下面
+
+```java
+//getMapper方法最终会调用到这里，这个是MapperRegistry的getMapper方法
+@SuppressWarnings("unchecked")
+public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+    //MapperProxyFactory  在解析的时候会生成一个map  map中会有我们的DemoMapper的Class
+    final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
+    if (mapperProxyFactory == null) {
+        throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
+    }
+    try {
+        return mapperProxyFactory.newInstance(sqlSession);
+    } catch (Exception e) {
+        throw new BindingException("Error getting mapper instance. Cause: " + e, e);
+    }
+}
+```
+
+可以看到这里mapperProxyFactory对象会从一个叫做knownMappers的对象中以**type**为key取出值，这个knownMappers是一个HashMap，存放了我们的DemoMapper对象，而这里的type，就是我们上面写的Mapper接口。那么就有人会问了，这个knownMappers是在什么时候生成的呢？实际上在解析的时候，会调用parse()方法,相信大家都还记得，这个方法内部有一个bindMapperForNamespace方法，而就是这个方法帮我们完成了knownMappers的生成，并且将我们的Mapper接口put进去。
+
+```java
+public void parse() {
+    //判断文件是否之前解析过
+    if (!configuration.isResourceLoaded(resource)) {
+        //解析mapper文件
+        configurationElement(parser.evalNode("/mapper"));
+        configuration.addLoadedResource(resource);
+        //这里：绑定Namespace里面的Class对象*
+        bindMapperForNamespace();
+    }
+
+    //重新解析之前解析不了的节点
+    parsePendingResultMaps();
+    parsePendingCacheRefs();
+    parsePendingStatements();
+}
+private void bindMapperForNamespace() {
+    String namespace = builderAssistant.getCurrentNamespace();
+    if (namespace != null) {
+        Class<?> boundType = null;
+        try {
+            boundType = Resources.classForName(namespace);
+        } catch (ClassNotFoundException e) {
+        }
+        if (boundType != null) {
+            if (!configuration.hasMapper(boundType)) {
+                configuration.addLoadedResource("namespace:" + namespace);
+                //这里将接口class传入
+                configuration.addMapper(boundType);
+            }
+        }
+    }
+}
+public <T> void addMapper(Class<T> type) {
+    if (type.isInterface()) {
+        if (hasMapper(type)) {
+            throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
+        }
+        boolean loadCompleted = false;
+        try {
+            //这里将接口信息put进konwMappers。
+            knownMappers.put(type, new MapperProxyFactory<>(type));
+            MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
+            parser.parse();
+            loadCompleted = true;
+        } finally {
+            if (!loadCompleted) {
+                knownMappers.remove(type);
+            }
+        }
+    }
+}
+```
+
+所以我们在getMapper之后，获取到的是一个Class，之后的代码就简单了，就是生成标准的代理类了，调用newInstance()方法。
+
+```java
+public T newInstance(SqlSession sqlSession) {
+    //首先会调用这个newInstance方法
+    //动态代理逻辑在MapperProxy里面
+    final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
+    //通过这里调用下面的newInstance方法
+    return newInstance(mapperProxy);
+}
+@SuppressWarnings("unchecked")
+protected T newInstance(MapperProxy<T> mapperProxy) {
+    //jdk自带的动态代理
+    return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
+}
+```
+
+到这里，就完成了**代理对象**（**MapperProxy**）的创建，很明显的，MyBatis的底层就是对我们的接口进行代理类的实例化，从而操作数据库。但是，我们好像就得到了一个空荡荡的对象，调用方法的逻辑呢？好像根本就没有看到，所以这也是比较考验Java功底的地方。我们知道，一个类如果要称为代理对象，那么一定需要实现InvocationHandler接口，并且实现其中的invoke方法，进行一波推测，逻辑一定在invoke方法中。于是就可以点进MapperProxy类，发现其的确实现了InvocationHandler接口，这里我将一些用不到的代码先删除了，只留下有用的代码，便于分析
+
+```java
+/**
+ * @author Clinton Begin
+ * @author Eduardo Macarron
+ */
+public class MapperProxy<T> implements InvocationHandler, Serializable {
+
+    public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
+        //构造
+        this.sqlSession = sqlSession;
+        this.mapperInterface = mapperInterface;
+        this.methodCache = methodCache;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        //这就是一个很标准的JDK动态代理了
+        //执行的时候会调用invoke方法
+        try {
+            if (Object.class.equals(method.getDeclaringClass())) {
+                //判断方法所属的类
+                //是不是调用的Object默认的方法
+                //如果是  则不代理，不改变原先方法的行为
+                return method.invoke(this, args);
+            } else if (method.isDefault()) {
+                //对于默认方法的处理
+                //判断是否为default方法，即接口中定义的默认方法。
+                //如果是接口中的默认方法则把方法绑定到代理对象中然后调用。
+                //这里不详细说
+                if (privateLookupInMethod == null) {
+                    return invokeDefaultMethodJava8(proxy, method, args);
+                } else {
+                    return invokeDefaultMethodJava9(proxy, method, args);
+                }
+            }
+        } catch (Throwable t) {
+            throw ExceptionUtil.unwrapThrowable(t);
+        }
+        //如果不是默认方法，则真正开始执行MyBatis代理逻辑。
+        //获取MapperMethod代理对象
+        final MapperMethod mapperMethod = cachedMapperMethod(method);
+        //执行
+        return mapperMethod.execute(sqlSession, args);
+    }
+
+    private MapperMethod cachedMapperMethod(Method method) {
+        //动态代理会有缓存，computeIfAbsent 如果缓存中有则直接从缓存中拿
+        //如果缓存中没有，则new一个然后放入缓存中
+        //因为动态代理是很耗资源的
+        return methodCache.computeIfAbsent(method, k -> new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
+    }
+}
+```
+
+在方法开始代理之前，首先会先判断是否调用了Object类的方法，如果是，那么MyBatis不会去改变其行为，直接返回，如果是默认方法，则绑定到代理对象中然后调用（不是本文的重点），如果都不是，那么就是我们定义的mapper接口方法了，那么就开始执行。执行方法需要一个**MapperMethod**对象，这个对象是MyBatis执行方法逻辑使用的，MyBatis这里获取MapperMethod对象的方式是，首先去**方法缓存**中看看是否已经存在了，如果不存在则new一个然后存入缓存中，因为创建代理对象是十分消耗资源的操作。总而言之，这里会得到一个MapperMethod对象，然后通过MapperMethod的excute()方法，来真正地执行逻辑。
+
+```java
+//execute() 这里是真正执行SQL的地方
+public Object execute(SqlSession sqlSession, Object[] args) {
+    //判断是哪一种SQL语句
+    Object result;
+    switch (command.getType()) {
+        case INSERT: {
+            Object param = method.convertArgsToSqlCommandParam(args);
+            result = rowCountResult(sqlSession.insert(command.getName(), param));
+            break;
+        }
+        case UPDATE: {
+            Object param = method.convertArgsToSqlCommandParam(args);
+            result = rowCountResult(sqlSession.update(command.getName(), param));
+            break;
+        }
+        case DELETE: {
+            Object param = method.convertArgsToSqlCommandParam(args);
+            result = rowCountResult(sqlSession.delete(command.getName(), param));
+            break;
+        }
+        case SELECT:
+            //我们的例子是查询
+
+            //判断是否有返回值
+            if (method.returnsVoid() && method.hasResultHandler()) {
+                //无返回值
+                executeWithResultHandler(sqlSession, args);
+                result = null;
+            } else if (method.returnsMany()) {
+                //返回值多行 这里调用这个方法
+                result = executeForMany(sqlSession, args);
+            } else if (method.returnsMap()) {
+                //返回Map
+                result = executeForMap(sqlSession, args);
+            } else if (method.returnsCursor()) {
+                //返回Cursor
+                result = executeForCursor(sqlSession, args);
+            } else {
+                Object param = method.convertArgsToSqlCommandParam(args);
+                result = sqlSession.selectOne(command.getName(), param);
+                if (method.returnsOptional()
+                    && (result == null || !method.getReturnType().equals(result.getClass()))) {
+                    result = Optional.ofNullable(result);
+                }
+            }
+            break;
+        case FLUSH:
+            result = sqlSession.flushStatements();
+            break;
+        default:
+            throw new BindingException("Unknown execution method for: " + command.getName());
+    }
+    if (result == null && method.getReturnType().isPrimitive() && !method.returnsVoid()) {
+        throw new BindingException("Mapper method '" + command.getName()
+                                   + " attempted to return null from a method with a primitive return type (" + method.getReturnType() + ").");
+    }
+    return result;
+}
+
+//返回值多行 这里调用这个方法
+private <E> Object executeForMany(SqlSession sqlSession, Object[] args) {
+    //返回值多行时执行的方法
+    List<E> result;
+    //param是我们传入的参数，如果传入的是Map，那么这个实际上就是Map对象
+    Object param = method.convertArgsToSqlCommandParam(args);
+    if (method.hasRowBounds()) {
+        //如果有分页
+        RowBounds rowBounds = method.extractRowBounds(args);
+        //执行SQL的位置
+        result = sqlSession.selectList(command.getName(), param, rowBounds);
+    } else {
+        //如果没有
+        //执行SQL的位置
+        result = sqlSession.selectList(command.getName(), param);
+    }
+    // issue #510 Collections & arrays support
+    if (!method.getReturnType().isAssignableFrom(result.getClass())) {
+        if (method.getReturnType().isArray()) {
+            return convertToArray(result);
+        } else {
+            return convertToDeclaredCollection(sqlSession.getConfiguration(), result);
+        }
+    }
+    return result;
+}
+
+/**
+  *  获取参数名的方法
+  */
+public Object getNamedParams(Object[] args) {
+    final int paramCount = names.size();
+    if (args == null || paramCount == 0) {
+        //如果传过来的参数是空
+        return null;
+    } else if (!hasParamAnnotation && paramCount == 1) {
+        //如果参数上没有加注解例如@Param，且参数只有一个，则直接返回参数
+        return args[names.firstKey()];
+    } else {
+        //如果参数上加了注解，或者参数有多个。
+        //那么MyBatis会封装参数为一个Map，但是要注意，由于jdk的原因，我们只能获取到参数下标和参数名，但是参数名会变成arg0,arg1.
+        //所以传入多个参数的时候，最好加@Param，否则假设传入多个String，会造成#{}获取不到值的情况
+        final Map<String, Object> param = new ParamMap<>();
+        int i = 0;
+        for (Map.Entry<Integer, String> entry : names.entrySet()) {
+            //entry.getValue 就是参数名称
+            param.put(entry.getValue(), args[entry.getKey()]);
+            //如果传很多个String，也可以使用param1，param2.。。
+            // add generic param names (param1, param2, ...)
+            final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
+            // ensure not to overwrite parameter named with @Param
+            if (!names.containsValue(genericParamName)) {
+                param.put(genericParamName, args[entry.getKey()]);
+            }
+            i++;
+        }
+        return param;
+    }
+}
+```
 
 
 
