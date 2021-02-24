@@ -96,7 +96,7 @@ public class Main {
 
 
 
-#### 源码解析: 构造
+#### 1. 源码解析: 构造
 
 new SqlSessionFactoryBuilder().build(inputStream)  入口  
 
@@ -460,7 +460,7 @@ public MappedStatement addMappedStatement(
 
 
 
-#### 源码解析: 执行
+#### 2. 源码解析: 执行
 
 sqlSession = sqlSessionFactory.openSession(); 入口
 
@@ -764,8 +764,174 @@ public Object getNamedParams(Object[] args) {
 }
 ```
 
+##### SQL执行（二级缓存）
+
+执行SQL的核心方法就是selectList，即使是selectOne，底层实际上也是调用了selectList方法，然后取第一个而已。SQL执行（二级缓存）
+
+```java
+//查询的核心方法
+@Override
+public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
+    try {
+        //MappedStatement:解析XML时生成的对象， 解析某一个SQL  会封装成MappedStatement，里面存放了我们所有执行SQL所需要的信息
+        MappedStatement ms = configuration.getMappedStatement(statement);
+        //查询,通过executor
+        return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
+    } catch (Exception e) {
+        throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
+    } finally {
+        ErrorContext.instance().reset();
+    }
+}
+```
+
+在这里我们又看到了上一篇构造的时候提到的，MappedStatement对象，这个对象是解析Mapper.xml配置而产生的，用于存储SQL信息，执行SQL需要这个对象中保存的关于SQL的信息，而selectList内部调用了**Executor**对象执行SQL语句，这个对象作为MyBatis四大对象之一，一会会说。
+
+```java
+public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    //获取sql语句
+    BoundSql boundSql = ms.getBoundSql(parameterObject);
+    //生成一个缓存的key  
+    //这里是-1181735286:4652640444:com.DemoMapper.selectAll:0:2147483647:select * from test WHERE id =?:2121:development
+    CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
+    return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+}
+
+@Override
+//二级缓存查询
+public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
+    throws SQLException {
+    //二级缓存的Cache
+    Cache cache = ms.getCache();
+    if (cache != null) {
+        //如果Cache不为空则进入
+        //如果有需要的话，就刷新缓存（有些缓存是定时刷新的，需要用到这个）
+        flushCacheIfRequired(ms);
+        //如果这个statement用到了缓存（二级缓存的作用域是namespace，也可以理解为这里的ms）
+        if (ms.isUseCache() && resultHandler == null) {
+            ensureNoOutParams(ms, boundSql);
+            @SuppressWarnings("unchecked")
+            //先从缓存拿
+            List<E> list = (List<E>) tcm.getObject(cache, key);
+            if (list == null) {
+                //如果缓存的数据等于空，那么查一级缓存
+                list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+                //查询完毕后将数据放入二级缓存
+                tcm.putObject(cache, key, list); // issue #578 and #116
+            }
+            //返回
+            return list;
+        }
+    }
+    //如果cache根本就不存在，那么直接查询一级缓存
+    return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+}
+```
+
+首先MyBatis在查询时，不会直接查询数据库，而是会进行**二级缓存**的查询，由于二级缓存的作用域是namespace，也可以理解为一个mapper，所以还会判断一下这个mapper是否开启了二级缓存，如果没有开启，则进入**一级缓存**继续查询。
+
+##### SQL查询（一级缓存）
+
+```java
+//一级缓存查询
+@Override
+public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
+    ErrorContext.instance().resource(ms.getResource()).activity("executing a query").object(ms.getId());
+    if (closed) {
+        throw new ExecutorException("Executor was closed.");
+    }
+    if (queryStack == 0 && ms.isFlushCacheRequired()) {
+        clearLocalCache();
+    }
+    List<E> list;
+    try {
+        //查询栈+1
+        queryStack++;
+        //一级缓存
+        list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
+        if (list != null) {
+            //对于存储过程有输出资源的处理
+            handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
+        } else {
+            //如果缓存为空，则从数据库拿
+            list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
+        }
+    } finally {
+        //查询栈-1
+        queryStack--;
+    }
+    if (queryStack == 0) {
+        for (DeferredLoad deferredLoad : deferredLoads) {
+            deferredLoad.load();
+        }
+        // issue #601
+        deferredLoads.clear();
+        if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
+            // issue #482
+            clearLocalCache();
+        }
+    }
+    //结果返回
+    return list;
+}
+```
+
+如果一级缓存查到了，那么直接就返回结果了，如果一级缓存没有查到结果，那么最终会进入数据库进行查询。
+
+##### SQL执行（数据库查询）
+
+```java
+//数据库查询
+private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
+    List<E> list;
+    //先往一级缓存中put一个占位符
+    localCache.putObject(key, EXECUTION_PLACEHOLDER);
+    try {
+        //调用doQuery方法查询数据库
+        list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
+    } finally {
+        localCache.removeObject(key);
+    }
+    //往缓存中put真实数据
+    localCache.putObject(key, list);
+    if (ms.getStatementType() == StatementType.CALLABLE) {
+        localOutputParameterCache.putObject(key, parameter);
+    }
+    return list;
+}
+//真实数据库查询
+@Override
+public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) throws SQLException {
+    Statement stmt = null;
+    try {
+        Configuration configuration = ms.getConfiguration();
+        //封装，StatementHandler也是MyBatis四大对象之一
+        StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+        //#{} -> ? 的SQL在这里初始化
+        stmt = prepareStatement(handler, ms.getStatementLog());
+        //参数赋值完毕之后，才会真正地查询。
+        return handler.query(stmt, resultHandler);
+    } finally {
+        closeStatement(stmt);
+    }
+}
+```
+
+在真正的数据库查询之前，我们的语句还是这样的：`select * from test where id = ?`，所以要先将占位符换成真实的参数值，所以接下来会进行参数的赋值。
+
+
+
+
+
+
+
+
+
 
 
 
 
 [手把手教你阅读mybatis源码](https://www.cnblogs.com/javazhiyin/p/12340498.html)
+
+[聊聊MyBatis缓存机制](https://tech.meituan.com/2018/01/19/mybatis-cache.html)
+
