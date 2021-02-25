@@ -456,7 +456,9 @@ public MappedStatement addMappedStatement(
 
 这个代码段虽然很长，但是一句话形容它就是繁琐但不复杂，里面主要也就是对xml的节点进行解析。MyBatis需要做的就是，先判断这个节点是用来干什么的，然后再获取这个节点的id、parameterType、resultType等属性，封装成一个MappedStatement对象，由于这个对象很复杂，所以MyBatis使用了构造者模式来构造这个对象，最后当MappedStatement对象构造完成后，将其封装到Configuration对象中。
 
-代码执行至此，基本就结束了对Configuration对象的构建，MyBatis的第一阶段：构造，也就到这里结束了
+代码执行至此，基本就结束了对Configuration对象的构建，MyBatis的第一阶段：构造，也就到这里结束了。
+
+![mybatis构建流程图.png](http://ww1.sinaimg.cn/large/0072fULUly1gnyegd90loj30jz0jj74v.jpg)
 
 
 
@@ -764,6 +766,10 @@ public Object getNamedParams(Object[] args) {
 }
 ```
 
+
+
+
+
 ##### SQL执行（二级缓存）
 
 执行SQL的核心方法就是selectList，即使是selectOne，底层实际上也是调用了selectList方法，然后取第一个而已。SQL执行（二级缓存）
@@ -830,6 +836,8 @@ public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds r
 
 首先MyBatis在查询时，不会直接查询数据库，而是会进行**二级缓存**的查询，由于二级缓存的作用域是namespace，也可以理解为一个mapper，所以还会判断一下这个mapper是否开启了二级缓存，如果没有开启，则进入**一级缓存**继续查询。
 
+![mybatis二级缓存执行流程.png](http://ww1.sinaimg.cn/large/0072fULUly1gnyehlk2idj30t90eqaan.jpg)
+
 ##### SQL查询（一级缓存）
 
 ```java
@@ -878,6 +886,10 @@ public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBoun
 
 如果一级缓存查到了，那么直接就返回结果了，如果一级缓存没有查到结果，那么最终会进入数据库进行查询。
 
+![mybatis一级缓存执行流程.png](http://ww1.sinaimg.cn/large/0072fULUly1gnyei0ytqej30pa0ptjso.jpg)
+
+
+
 ##### SQL执行（数据库查询）
 
 ```java
@@ -919,19 +931,93 @@ public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBo
 
 在真正的数据库查询之前，我们的语句还是这样的：`select * from test where id = ?`，所以要先将占位符换成真实的参数值，所以接下来会进行参数的赋值。
 
+因为MyBatis底层封装的就是java最基本的jdbc，所以赋值一定也是调用jdbc的putString()方法。
 
+```java
+/********************************参数赋值部分*******************************/
+//由于是#{}，所以使用的是prepareStatement，预编译SQL
+private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
+    Statement stmt;
+    //拿连接对象
+    Connection connection = getConnection(statementLog);
+    //初始化prepareStatement
+    stmt = handler.prepare(connection, transaction.getTimeout());
+    //获取了PrepareStatement之后，这里给#{}赋值
+    handler.parameterize(stmt);
+    return stmt;
+}
 
+/**
+    * 预编译SQL进行put值
+    */
+@Override
+public void setParameters(PreparedStatement ps) {
+    ErrorContext.instance().activity("setting parameters").object(mappedStatement.getParameterMap().getId());
+    //参数列表
+    List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
+    if (parameterMappings != null) {
+        for (int i = 0; i < parameterMappings.size(); i++) {
+            ParameterMapping parameterMapping = parameterMappings.get(i);
+            if (parameterMapping.getMode() != ParameterMode.OUT) {
+                Object value;
+                //拿到xml中#{}   参数的名字  例如 #{id}  propertyName==id
+                String propertyName = parameterMapping.getProperty();
+                if (boundSql.hasAdditionalParameter(propertyName)) { // issue #448 ask first for additional params
+                    value = boundSql.getAdditionalParameter(propertyName);
+                } else if (parameterObject == null) {
+                    value = null;
+                } else if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
+                    value = parameterObject;
+                } else {
+                    //metaObject存储了参数名和参数值的对应关系
+                    MetaObject metaObject = configuration.newMetaObject(parameterObject);
+                    value = metaObject.getValue(propertyName);
+                }
+                TypeHandler typeHandler = parameterMapping.getTypeHandler();
+                JdbcType jdbcType = parameterMapping.getJdbcType();
+                if (value == null && jdbcType == null) {
+                    jdbcType = configuration.getJdbcTypeForNull();
+                }
+                try {
+                    //在这里给preparedStatement赋值，通过typeHandler，setParameter最终会调用一个叫做setNonNullParameter的方法。代码贴在下面了。
+                    typeHandler.setParameter(ps, i + 1, value, jdbcType);
+                } catch (TypeException | SQLException e) {
+                    throw new TypeException("Could not set parameters for mapping: " + parameterMapping + ". Cause: " + e, e);
+                }
+            }
+        }
+    }
+}
+//jdbc赋值
+public void setNonNullParameter(PreparedStatement ps, int i, String parameter, JdbcType jdbcType)
+    throws SQLException {
+    //这里就是最最原生的jdbc的赋值了
+    ps.setString(i, parameter);
+}
+/********************************参数赋值部分*******************************/
+```
 
+当参数赋值完毕后，SQL就可以执行了，在上文中的代码可以看到当参数赋值完毕后，直接通过hanler.query()方法进行数据库查询
 
+```java
+@Override
+public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+    //通过jdbc进行数据库查询。
+    PreparedStatement ps = (PreparedStatement) statement;
+    ps.execute();
+    //处理结果集 resultSetHandler 也是MyBatis的四大对象之一
+    return resultSetHandler.handleResultSets(ps);
+}
+```
 
+可以很明显看到，这里实际上也就是调用我们熟悉的原生jdbc对数据库进行查询。
 
+![mybatis执行流程图.png](http://ww1.sinaimg.cn/large/0072fULUly1gnyeh7l6w5j30ow0k2q82.jpg)
 
-
-
+ #### 3. 源码解析: 结果集解析（TODO）
 
 
 
 [手把手教你阅读mybatis源码](https://www.cnblogs.com/javazhiyin/p/12340498.html)
 
 [聊聊MyBatis缓存机制](https://tech.meituan.com/2018/01/19/mybatis-cache.html)
-
