@@ -1021,3 +1021,5 @@ public <E> List<E> query(Statement statement, ResultHandler resultHandler) throw
 [手把手教你阅读mybatis源码](https://www.cnblogs.com/javazhiyin/p/12340498.html)
 
 [聊聊MyBatis缓存机制](https://tech.meituan.com/2018/01/19/mybatis-cache.html)
+
+[手写一个简单的mybatis框架](https://blog.csdn.net/hongtaolong/article/details/87968426)
