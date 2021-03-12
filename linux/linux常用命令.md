@@ -46,6 +46,7 @@ iptables -L
 top  #查看cup 内存
 df -h  #查看硬盘
 du -sh *  #查看当前目录文件大小的详细列表
+du -h --max-depth=1   #查看当前目录下各个文件夹大小
 systemctl restart network #重启网络
 
 #设置环境变量

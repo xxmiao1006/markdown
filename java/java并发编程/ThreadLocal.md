@@ -167,6 +167,20 @@ threadLocalMap是Thread的一个内部类，底层实现是一个继承了WeakRe
 
 Entry继承了弱引用，所以此时作为key的ThreadLocal在这里是弱引用，之所以用弱引用的原因是：当栈中对new ThreadLocal()的强引用td消失时，new ThreadLocal() 应该被GC，而如果此时作为key的ThreadLocal不是弱引用而是强引用，则会导致堆中的new ThreadLocal()不能被回收。很容易发生内存泄漏。
 
+既然弱引用会导致内存泄漏，那为什么还要弱引用？
+
+首先如果 key 不用弱引用，那么当外部对 ThreadLocal 的强引用消失之后，由于 ThreadLocalMap 是这个线程的成员之一，所以这个线程还在，那么 ThreadLocalMap 就在，而 ThreadLocalMap 在，那么 Entry 肯定在，而 Entry 在那么强引用的 key 和 value 就肯定在。
+
+所以如果 key 不用弱引用，那么 key 都无法被 GC 。
+
+所以 key 用弱引用那么至少 key 这点内存是可以被省掉的，并且线性探测还能清一些 Entry。
+
+其实发生内存泄漏的根本不在于 key 是弱引用，因为他们都属于一个线程的属性，所以线程活着它们就不能被 GC，这一条引用链是无法更改的。
+
+然后现在都是用线程池，所以线程有可能长时间存活，因此就会逐渐堆积，导致内存满了。
+
+所以这点需要明确。
+
 ```java
 static class ThreadLocalMap {
 
