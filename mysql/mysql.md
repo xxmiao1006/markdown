@@ -58,7 +58,7 @@
 
 ##### 可重复读 (REPEATABLE READ)
 
-​		REPEATABLE READ解决了脏读的问题。该级别保证了在同一个事务中多次读取统一记录的结果是一直的。但是理论上，可重复读隔离级别还是无法解决另外一个幻读（Phantom Read）的问题。所谓幻读，指的是当某个事务在读取某个范围内的记录时，会产生幻行（Phantom Row)。在InnoDB和XtraDB存储引擎通过多版本并发控制（MVCC）解决了幻读的问题。可重复读时MySQL的默认事务隔离级别
+​		REPEATABLE READ解决了脏读的问题。该级别保证了在同一个事务中多次读取统一记录的结果是一直的。但是理论上，可重复读隔离级别还是无法解决另外一个幻读（Phantom Read）的问题。所谓幻读，指的是当某个事务在读取某个范围内的记录时，会产生幻行（Phantom Row)。在InnoDB和XtraDB存储引擎通过多版本并发控制（MVCC）解决了幻读的问题。可重复读是MySQL的默认事务隔离级别
 
 ##### 可串行化 (SERIALIZABLE)
 
@@ -67,6 +67,18 @@
 
 
 ![SQL隔离级别](E:\git-markdown\markdown\images\MySql\SQL隔离级别.png)
+
+* 几个概念：
+
+  脏读：可以读取未提交的数据。RC 要求解决脏读；
+
+  不可重复读：同一个事务中多次执行同一个select, 读取到的数据发生了改变(被其它事务update并且提交)；
+
+  可重复读：同一个事务中多次执行同一个select, 读取到的数据没有发生改变(一般使用MVCC实现)；RR各级级别要求达到可重复读的标准；
+
+  幻读：同一个事务中多次执行同一个select, 读取到的数据行发生改变。也就是行数减少或者增加了(被其它事务delete/insert并且提交)。SERIALIZABLE要求解决幻读问题；
+
+  
 
 * 不可重复读和幻读到底有什么区别？
 
@@ -124,7 +136,7 @@
 
 
 
-
+[[MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
 
 
 
