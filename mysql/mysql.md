@@ -134,9 +134,9 @@
 
 
 
+[MySQL索引底层：B+树详解](https://mp.weixin.qq.com/s/FXOEq-T7pDSlbwccW_2l_w)
 
-
-[[MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
+[MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
 
 
 

@@ -446,7 +446,7 @@ jstack 28223 | grep -A30 6e48
 
 -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC
 
-
+[深度揭秘垃圾回收底层，这次让你彻底弄懂她](https://my.oschina.net/u/3944379/blog/4722027)
 
 [jvm G1 深度分析](https://blog.csdn.net/u013380694/article/details/83341913)
 
@@ -473,3 +473,4 @@ jstack 28223 | grep -A30 6e48
 * 大对象直接进入老年代
 * 长期存活的对象进入老年代（被移到survivor空间中，年龄为1，之后每熬过一次MinorGC,年龄加一，当年龄达到一定程度默认15岁时会被晋升到老年代）
 * 动态年龄判断（在survivor空间中相同年所有对象的大小总和大于survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，无需等到MaxTenuringThreshold中要求的年龄）。
+
