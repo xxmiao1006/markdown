@@ -42,3 +42,11 @@ redis的核心命令执行模块是单线程，其他模块还是有它各自的
 
 最后，目前最新的 6.0 版本中，IO 多线程处理模式默认是不开启的，需要去配置文件中开启并配置线程数
 
+
+
+
+
+[如何优雅地用Redis实现分布式锁](https://baijiahao.baidu.com/s?id=1623086259657780069&wfr=spider&for=pc)
+
+[redis官方中文文档](http://www.redis.cn/topics/distlock.html)
+
