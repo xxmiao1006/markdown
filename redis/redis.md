@@ -50,3 +50,5 @@ redis的核心命令执行模块是单线程，其他模块还是有它各自的
 
 [redis官方中文文档](http://www.redis.cn/topics/distlock.html)
 
+[从应用到底层 36张图带你进入Redis世界](https://www.jianshu.com/p/1ac051c4184c)
+

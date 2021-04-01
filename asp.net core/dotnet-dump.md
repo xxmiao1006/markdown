@@ -13,7 +13,9 @@
 抓取假死的进程的dump文件（包括内存、调用堆栈）
 
 ```bash
-dotnet-dump collect -p 30865
+dotnet-dump collect -p 13791
+
+dotnet-dump collect --type Mini -p 30865
 ```
 
 查看假死进程那个线程所占用的cpu最高，将使用cpu最高的线程pid记下来

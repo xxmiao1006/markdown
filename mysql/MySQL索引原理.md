@@ -579,7 +579,21 @@ SHOW PROFILES;
 
 
 
+  5.存储单元最小的页细节
 
+- MySQL 一页默认16 KB，所以不是按数量的，是按总的记录数所占的空间。
+- **页内记录是单向链表连接，页之间是双向链表连接**。
+- 当一页数据存满了之后需要进行页分裂，也就是拆分下记录变成两个页。
+- 页分裂操作也可能导致多个页都满了，比如你往一个页中间插入数据，挤出一条数据到下一页，然后下一页也满了，发生级联，影响性能，所以建议主键有序，这样不会往中间的页插入数据。
+- **MySQL页内默认会有一条最大记录和一条最小记录不存储数据，就是这样设计的，和链表dummy节点类似**。
+- 一页除了存储数据还有一些元数据，比如FileHeader、PageHeader等等
+- 一条记录也有很多细节。
+
+
+
+  6.mysql的回表
+
+​		innodb主键索引为聚簇索引，叶子节点存储了完整的记录信息，而其他辅助索引（二级索引）叶子节点存储的指针，所以通过辅助索引查找数据只能查到id和索引列，如果还需要查找其他没有的字段需要通过主键回到主键索引再查询一次，这称之为回表操作（非常慢，需要扫描两遍索引树）。可以通过使用覆盖索引来优化辅助索引的回表操作，意思就是查询的字段通过辅助索引树就可以直接查出来，不需要通过回表操作查询其他字段的信息。
 
 
 
@@ -588,3 +602,7 @@ SHOW PROFILES;
 [MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
 
 [不要用 SELECT *](https://mp.weixin.qq.com/s?__biz=MzAxNDMwMTMwMw==&mid=2247518736&idx=3&sn=681243c05b9d5e514753d9c6198bd2e4&chksm=9b97ab08ace0221e89babc6740f2ca4c1e1905c45ec615435c8400997ecb8cb2f385de3ef158&mpshare=1&scene=24&srcid=032054u5rYxFksxE7XOj4N5C&sharer_sharetime=1616211731550&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
+
+[我说 SELECT COUNT(*) 会造成全表扫描，面试官让我回去等通知](https://www.jianshu.com/p/8db16b21910e) 
+
+[我叫小M，立志建立MySQL帝国](https://mp.weixin.qq.com/s?__biz=MzkxNTE3NjQ3MA==&mid=2247488749&idx=1&sn=3bab1201536d4f500a2d0a824c109be2&chksm=c1627994f615f082f87813cb4a7b7d1199585b3b676cea57c99914122b4b33602488f1952170&mpshare=1&scene=1&srcid=0331HLYBZSdzjrDj9F61I8BA&sharer_sharetime=1617180026750&sharer_shareid=08dcc952c1dbf40692e2eadee7b24ea2&key=01e0afdaa229c2675097a90ed20e732d0379ba510e1704b9875d3c4ad989a8807a99c404e01acf40647ecd6ca5c808e09457b04d5ddf9493ae82a78f97bfff07e64509ab8c7c6b6ae751cc0bb1065eae8cd0e7770a90f99e1a261296c716ac99ce2222604678683278612bdd1432d42833506e1c3c6cced88a1e8c229b2cf02e&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AazLWj7bREUc%2FqgTvG3iofw%3D&pass_ticket=4xeKDq6zXZ5k6vdsFjTOLcHvfCVu%2BspCKcbKDRq6gkyVTMAw0ivTQPIciP3hD3XG&wx_header=0)
