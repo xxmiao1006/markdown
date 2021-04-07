@@ -56,7 +56,6 @@ elasticsearch
   npm install -g grunt -cli
   ```
   
-
 * 步骤5：安装依赖
 
   ```bash
@@ -464,3 +463,38 @@ docker pull mobz/elasticsearch‐head:5
 docker run -di --name=myhead -p 9100:9100 docker pull mobz/elasticsearch-head:5
 ```
 
+
+
+### 六. 倒排索引
+
+在没有搜索引擎时，我们是直接输入一个网址，然后获取网站内容，这时我们的行为是：
+
+document -> to -> words
+
+通过文章，获取里面的单词，此谓「正向索引」，forward index.
+
+后来，我们希望能够输入一个单词，找到含有这个单词，或者和这个单词有关系的文章：
+
+word -> to -> documents
+
+于是我们把这种索引，成为inverted index，直译过来，应该叫「反向索引」，国内翻译成「倒排索引」，有点委婉了
+
+![倒排索引.png](http://ww1.sinaimg.cn/large/0072fULUgy1gp3z64k7fkj313h0lpto9.jpg)
+
+
+
+![ela.png](http://ww1.sinaimg.cn/large/0072fULUgy1gp3z6y5043j30im09f779.jpg)
+
+​		Lucene 的倒排索，增加了最左边的一层「字典树」term index，它不存储所有的单词，只存储单词前缀，通过字典树找到单词所在的块，也就是单词的大概位置，再在块里二分查找，找到对应的单词，再找到单词对应的文档列表
+
+
+
+
+
+
+
+
+
+
+
+[elasticsearch的倒排索引](https://zhuanlan.zhihu.com/p/76485252)

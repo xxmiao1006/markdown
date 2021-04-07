@@ -606,3 +606,7 @@ SHOW PROFILES;
 [我说 SELECT COUNT(*) 会造成全表扫描，面试官让我回去等通知](https://www.jianshu.com/p/8db16b21910e) 
 
 [我叫小M，立志建立MySQL帝国](https://mp.weixin.qq.com/s?__biz=MzkxNTE3NjQ3MA==&mid=2247488749&idx=1&sn=3bab1201536d4f500a2d0a824c109be2&chksm=c1627994f615f082f87813cb4a7b7d1199585b3b676cea57c99914122b4b33602488f1952170&mpshare=1&scene=1&srcid=0331HLYBZSdzjrDj9F61I8BA&sharer_sharetime=1617180026750&sharer_shareid=08dcc952c1dbf40692e2eadee7b24ea2&key=01e0afdaa229c2675097a90ed20e732d0379ba510e1704b9875d3c4ad989a8807a99c404e01acf40647ecd6ca5c808e09457b04d5ddf9493ae82a78f97bfff07e64509ab8c7c6b6ae751cc0bb1065eae8cd0e7770a90f99e1a261296c716ac99ce2222604678683278612bdd1432d42833506e1c3c6cced88a1e8c229b2cf02e&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AazLWj7bREUc%2FqgTvG3iofw%3D&pass_ticket=4xeKDq6zXZ5k6vdsFjTOLcHvfCVu%2BspCKcbKDRq6gkyVTMAw0ivTQPIciP3hD3XG&wx_header=0)
+
+[1分钟了解MyISAM与InnoDB的索引差异](https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=2651961494&idx=1&sn=34f1874c1e36c2bc8ab9f74af6546ec5&chksm=bd2d0d4a8a5a845c566006efce0831e610604a43279aab03e0a6dde9422b63944e908fcc6c05&scene=21#wechat_redirect)
+
+[MySQL 避免行锁升级为表锁——使用高效的索引](https://blog.csdn.net/wangen2010/article/details/100878916?utm_medium=distribute.pc_relevant_bbs_down.none-task-blog-baidujs-1.nonecase&depth_1-utm_source=distribute.pc_relevant_bbs_down.none-task-blog-baidujs-1.nonecase)
