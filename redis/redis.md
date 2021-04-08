@@ -86,6 +86,11 @@ appendfsync everysec
 no-appendfsync-on-rewrite yes
 auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
+
+#密码
+#requirepass 123456
+#masterauth 123456
+
 ```
 
 redis.config
@@ -1593,9 +1598,9 @@ b6b3c6f20f741becccfe19f47028662fdfe8cba9 192.168.1.175:8001@18001 myself,master 
 
 ```
 
+如果一个小集群主从挂了 将会导致整个cluster挂掉
 
-
-
+(error) CLUSTERDOWN The cluster is down
 
 ![1617693162466](E:\git-markdown\markdown\images\redis\redis高可用集群.png)
 
@@ -1613,11 +1618,13 @@ b6b3c6f20f741becccfe19f47028662fdfe8cba9 192.168.1.175:8001@18001 myself,master 
 
 
 
-
-
 :%s/8001/8002/g
 
 ​	 /usr/local/redis-5.0.2/src/redis-cli --cluster create --cluster-replicas 1 192.168.1.175:8001 192.168.1.175:8002 192.168.1.175:8003 192.168.1.175:8004  192.168.1.175:8005 192.168.1.175:8006
+
+
+
+
 
 ![1617694290277](E:\git-markdown\markdown\images\redis\redis-5.png)
 
@@ -1627,6 +1634,42 @@ b6b3c6f20f741becccfe19f47028662fdfe8cba9 192.168.1.175:8001@18001 myself,master 
 
 
 
+```bash
+[root@node1 src]# ./redis-cli --cluster help
+Cluster Manager Commands:
+  create         host1:port1 ... hostN:portN    # 创建一个集群
+                 --cluster-replicas <arg>
+  check          host:port
+  info           host:port
+  fix            host:port
+  reshard        host:port
+                 --cluster-from <arg>
+                 --cluster-to <arg>
+                 --cluster-slots <arg>
+                 --cluster-yes
+                 --cluster-timeout <arg>
+                 --cluster-pipeline <arg>
+  rebalance      host:port
+                 --cluster-weight <node1=w1...nodeN=wN>
+                 --cluster-use-empty-masters
+                 --cluster-timeout <arg>
+                 --cluster-simulate
+                 --cluster-pipeline <arg>
+                 --cluster-threshold <arg>
+  add-node       new_host:new_port existing_host:existing_port  #将一个节点添加到集群里头
+                 --cluster-slave
+                 --cluster-master-id <arg>
+  del-node       host:port node_id
+  call           host:port command arg arg .. arg  #可以执行redis命令
+  set-timeout    host:port milliseconds
+  import         host:port
+                 --cluster-from <arg>
+                 --cluster-copy
+                 --cluster-replace
+  help           
+
+For check, fix, reshard, del-node, set-timeout you can specify the host and port of any working node in the cluster.
+```
 
 
 
@@ -1638,6 +1681,27 @@ b6b3c6f20f741becccfe19f47028662fdfe8cba9 192.168.1.175:8001@18001 myself,master 
 
 
 
+## 持久化
+
+aof文件检查
+
+redis-check-aof /etc/redis/appendonly.aof
+
+rdb文件检查
+
+redis-check-rdb /etc/redis/dump.rdb
+
+查看持久化信息
+
+info Persistence
+
+查看状态信息
+
+info stats
+
+混合模式下手动写aof
+
+bgrewriteaof
 
 
 
