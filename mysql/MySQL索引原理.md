@@ -640,11 +640,25 @@ SHOW PROFILES;
 
 
 
+9. 索引下推(ICP Index Condition Pushdown)
 
+索引下推把查询未用到的索引，传输给engine层，可以过滤掉部分数据，减少回表的操作（说明用在二级索引，主键索引中不存在ICP）。[MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
 
+ICP的使用限制
 
+1. 当sql需要全表访问时，ICP的优化策略可用于range, ref, eq_ref, ref_or_null类型的访问数据方法 。
 
+2. 支持InnoDB和MyISAM表。
 
+3. ICP只能用于二级索引，不能用于主索引。
+
+4. 并非全部where条件都可以用ICP筛选，如果where条件的字段不在索引列中，还是要读取整表的记录到server端做where过滤。
+
+5. ICP的加速效果取决于在存储引擎内通过ICP筛选掉的数据的比例。
+
+6. MySQL 5.6版本的不支持分表的ICP功能，5.7版本的开始支持。
+
+7. 当sql使用覆盖索引时，不支持ICP优化方法。
 
 
 
@@ -665,3 +679,8 @@ SHOW PROFILES;
 [1分钟了解MyISAM与InnoDB的索引差异](https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=2651961494&idx=1&sn=34f1874c1e36c2bc8ab9f74af6546ec5&chksm=bd2d0d4a8a5a845c566006efce0831e610604a43279aab03e0a6dde9422b63944e908fcc6c05&scene=21#wechat_redirect)
 
 [MySQL 避免行锁升级为表锁——使用高效的索引](https://blog.csdn.net/wangen2010/article/details/100878916?utm_medium=distribute.pc_relevant_bbs_down.none-task-blog-baidujs-1.nonecase&depth_1-utm_source=distribute.pc_relevant_bbs_down.none-task-blog-baidujs-1.nonecase)
+
+[MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
+
+[MySQL的MVCC及实现原理](https://blog.csdn.net/qq_35623773/article/details/106107909)
+
