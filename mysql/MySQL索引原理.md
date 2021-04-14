@@ -528,7 +528,7 @@ SHOW PROFILES;
 
 ### 五. 相关问题及答案总结
 
-1. 为什么索引结构默认使用B+树，而不是B-Tree，Hash哈希，二叉树，红黑树？
+1. **为什么索引结构默认使用B+树，而不是B-Tree，Hash哈希，二叉树，红黑树？**
 
 - Hash哈希，只适合等值查询，不适合范围查询。
 - 一般二叉树，可能会特殊化为一个链表，相当于全表扫描。
@@ -537,7 +537,7 @@ SHOW PROFILES;
 
 
 
-2. 为什么innodb推荐使用自增id做主键
+2. **为什么innodb推荐使用自增id做主键**
 
 * 索引底层实现默认是使用B+Tree  一般mysql会设置一个节点的大小为一页的大小（内存与磁盘交换的单位）保证一次io能读取完一个节点，自增id相较于uuid或者雪花id更小，degree更大，树更矮胖
 
@@ -549,7 +549,7 @@ SHOW PROFILES;
 
 
 
-3. InnoDB一棵B+树可以存放多少行数据？
+3. **InnoDB一棵B+树可以存放多少行数据？**
 
 这个问题的简单回答是：约2千万行。
 
@@ -571,7 +571,7 @@ SHOW PROFILES;
 
 
 
-4. 为什么不推荐使用select *
+4. **为什么不推荐使用select ***
 
 * 可能回查询到不必要的列，包括一些不需要的大字段，增加时间传输和网络开销
 * 如果使用mybatis,增减字段容易与 resultMap 配置不一致
@@ -579,7 +579,7 @@ SHOW PROFILES;
 
 
 
-  5.存储单元最小的页细节
+  5.**存储单元最小的页细节**
 
 - MySQL 一页默认16 KB，所以不是按数量的，是按总的记录数所占的空间。
 - **页内记录是单向链表连接，页之间是双向链表连接**。
@@ -591,7 +591,7 @@ SHOW PROFILES;
 
 
 
-  6.MySQL的回表
+  6.**MySQL的回表**
 
 ​		innodb主键索引为聚簇索引，叶子节点存储了完整的记录信息，而其他辅助索引（二级索引）叶子节点存储的指针，所以通过辅助索引查找数据只能查到id和索引列，如果还需要查找其他没有的字段需要通过主键回到主键索引再查询一次，这称之为回表操作（非常慢，需要扫描两遍索引树）。可以通过使用覆盖索引来优化辅助索引的回表操作，意思就是查询的字段通过辅助索引树就可以直接查出来，不需要通过回表操作查询其他字段的信息。
 
@@ -607,7 +607,7 @@ SHOW PROFILES;
 
 
 
-8. 执行流程update
+8. **执行流程update**
 
 1.首先客户端通过tcp/ip发送一条sql语句到server层的SQL interface
 2.SQL interface接到该请求后，先对该条语句进行解析，验证权限是否匹配
@@ -640,7 +640,7 @@ SHOW PROFILES;
 
 
 
-9. 索引下推(ICP Index Condition Pushdown)
+9. **索引下推(ICP Index Condition Pushdown)**
 
 索引下推把查询未用到的索引，传输给engine层，可以过滤掉部分数据，减少回表的操作（说明用在二级索引，主键索引中不存在ICP）。[MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
 
@@ -662,9 +662,64 @@ ICP的使用限制
 
 
 
+10.**redolog 和change buffer(普通索引用)**
+
+​		redo log 与 change buffer(含磁盘持久化) 这2个机制，不同之处在于——优化了整个变更流程的不同阶段。 先不考虑redo log、change buffer机制，简化抽象一个变更(insert、update、delete)流程：
+
+ 1、从磁盘读取待变更的行所在的数据页，读取至内存页中。 
+
+2、对内存页中的行，执行变更操作 3、将变更后的数据页，写入至磁盘中。 步骤1，涉及 随机 读磁盘IO； 步骤3，涉及 随机 写磁盘IO；
+
+ Change buffer机制，优化了步骤1——避免了随机读磁盘IO 
+
+Redo log机制， 优化了步骤3——避免了随机写磁盘IO，将随机写磁盘，优化为了顺序写磁盘(写redo log，确保crash-safe) 
+
+-------------------------------- 在我们mysql innodb中， change buffer机制不是一直会被应用到，仅当待操作的数据页当前不在内存中，需要先读磁盘加载数据页时，change buffer才有用武之地。 redo log机制，为了保证crash-safe，一直都会用到。
+
+ ------------------------------- 有无用到change buffer机制，对于redo log这步的区别在于—— 用到了change buffer机制时，在redo log中记录的本次变更，是记录new change buffer item相关的信息，而不是直接的记录物理页的变更。
 
 
 
+当要更新的数据在内存中，命中，直接在内存更新，记录redolog;如果不在，写change buffer，然后记录redolog，此时redolog记录的是change buffer中的改动，所以redolog刷盘时是刷到change buffer的ibdata1,并不会将他直接更新到数据文件（表名.ibd）中，当内存中读入这个页时会将change buffer的更新merge一起到内存中，这时候才算真正更新了数据
+
+
+
+merge 的执行流程是这样的：从磁盘读入数据页到内存（老版本的数据页）；从 change buffer 里找出这个数据页的 change buffer 记录 (可能有多个），依次应用，得到新版数据页；写 redo log。这个 redo log 包含了数据的变更和 change buffer 的变更。到这里 merge 过程就结束了。这时候，数据页和内存中 change buffer 对应的磁盘位置都还没有修改，属于脏页，之后各自刷回自己的物理数据，就是另外一个过程了。
+
+
+
+
+
+11
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. 使用 show index from table_name 命令，查看表索引的基数 2. 使用 analyze table table_name 命令，重新统计索引信息,解决采样导致的扫描行数出错的问题
+
+2. 查看表占用硬盘空间大小的SQL语句如下：(用M做展示单位)
+
+SELECT
+
+concat(round(sum(DATA_LENGTH/ 1024),2),'M')ASsize
+
+FROM information_schema.TABLES
+
+WHERE table_schema= '数据库名'AND table_name= '表名';
+
+
+optimize table table_name 释放表的磁盘空间
 
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
 
@@ -683,4 +738,3 @@ ICP的使用限制
 [MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
 
 [MySQL的MVCC及实现原理](https://blog.csdn.net/qq_35623773/article/details/106107909)
-
