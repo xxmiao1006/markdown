@@ -1713,7 +1713,8 @@ rdb模式：
 
 ## redis各种类型已经使用场景
 
-42_string类型使用场景
+#### 42_string类型使用场景
+
 最常用
 
 SET key value
@@ -1731,7 +1732,8 @@ MGET key [key…]
 获取字符串长度
 
 STRLEN key
-分布式锁
+
+##### 分布式锁
 
 SETNX key value
 SET key value [EX seconds] [PX milliseconds] [NX|XX]
@@ -1741,9 +1743,12 @@ NX：当key不存在的时候，才创建key，效果等同于setnx
 XX：当key存在的时候，覆盖key
 应用场景
 
-商品编号、订单号采用INCR命令生成
+##### 商品编号、订单号采用INCR命令生成
+
 是否喜欢的文章
-43_hash类型使用场景
+
+#### 43_hash类型使用场景
+
 Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
 
 一次设置一个字段值 HSET key field value
@@ -1760,14 +1765,16 @@ Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
 
 删除一个key HDEL
 
-应用场景 - 购物车早期，当前小中厂可用
+##### 应用场景 - 购物车早期，当前小中厂可用
 
 新增商品 hset shopcar:uid1024 334488 1
 新增商品 hset shopcar:uid1024 334477 1
 增加商品数量 hincrby shopcar:uid1024 334477 1
 商品总数 hlen shopcar:uid1024
 全部选择 hgetall shopcar:uid1024
-44_list类型使用场景
+
+#### 44_list类型使用场景
+
 向列表左边添加元素 LPUSH key value [value …]
 
 向列表右边添加元素 RPUSH key value [value …]
@@ -1776,14 +1783,16 @@ Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
 
 获取列表中元素的个数 LLEN key
 
-应用场景 - 微信文章订阅公众号
+##### 应用场景 - 微信文章订阅公众号
 
 大V作者李永乐老师和ICSDN发布了文章分别是11和22
 阳哥关注了他们两个，只要他们发布了新文章，就会安装进我的List
 lpush likearticle:阳哥id1122
 查看阳哥自己的号订阅的全部文章，类似分页，下面0~10就是一次显示10条
 lrange likearticle:阳哥id 0 10
-45_set类型使用场景
+
+#### 45_set类型使用场景
+
 添加元素 SADD key member [member …]
 
 删除元素 SREM key member [member …]
@@ -1811,7 +1820,8 @@ SINTER key [key …]
 SUNION key [key …]
 应用场景
 
-微信抽奖小程序
+##### 微信抽奖小程序
+
 用户ID，立即参与按钮
 SADD key 用户ID
 显示已经有多少人参与了、上图23208人参加
@@ -1819,7 +1829,9 @@ SCARD key
 抽奖(从set中任意选取N个中奖人)
 SRANDMEMBER key 2（随机抽奖2个人，元素不删除）
 SPOP key 3（随机抽奖3个人，元素会删除）
-微信朋友圈点赞
+
+##### 微信朋友圈点赞
+
 新增点赞
 sadd pub:msglD 点赞用户ID1 点赞用户ID2
 取消点赞
@@ -1830,19 +1842,25 @@ SMEMBERS pub:msglD
 scard pub:msgID
 判断某个朋友是否对楼主点赞过
 SISMEMBER pub:msglD用户ID
-微博好友关注社交关系
+
+##### 微博好友关注社交关系
+
 共同关注：我去到局座张召忠的微博，马上获得我和局座共同关注的人
 sadd s1 1 2 3 4 5
 sadd s2 3 4 5 6 7
 SINTER s1 s2
 我关注的人也关注他(大家爱好相同)
-QQ内推可能认识的人
+
+##### QQ内推可能认识的人
+
 sadd s1 1 2 3 4 5
 sadd s2 3 4 5 6 7
 SINTER s1 s2
 SDIFF s1 s2
 SDIFF s2 s1
-46_zset类型使用场景
+
+#### 46_zset类型使用场景
+
 向有序集合中加入一个元素和该元素的分数
 
 添加元素 ZADD key score member [score member …]
@@ -1871,7 +1889,8 @@ SDIFF s2 s1
 
 应用场景
 
-根据商品销售对商品进行排序显示
+##### 根据商品销售对商品进行排序显示
+
 定义商品销售排行榜（sorted set集合），key为goods:sellsort，分数为商品销售数量。
 商品编号1001的销量是9，商品编号1002的销量是15 - zadd goods:sellsort 9 1001 15 1002
 有一个客户又买了2件商品1001，商品编号1001销量加2 - zincrby goods:sellsort 2 1001
