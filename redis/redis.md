@@ -1675,12 +1675,6 @@ For check, fix, reshard, del-node, set-timeout you can specify the host and port
 
 
 
-
-
-
-
-
-
 ## 持久化
 
 aof文件检查
@@ -1705,6 +1699,190 @@ bgrewriteaof
 
 
 
+rdb模式：
+
+1.手动执行save会调用rdbsave，阻塞redis主进程，导致无法提供服务
+
+2.使用bgsave则fork出一个子进程，子进程负责调用rdbSave,在保存完成后向主进程发送信号告知完成。在bgsave执行期间仍然可以继续处理客户端请求
+
+3、Copy On Write 机制，备份的是开始那个时刻内存中的数据，只复制被修改内存页数据，不是全部内存数据。
+
+4、Copy On Write 时如果父子进程大量写操作会导致分页错误。
+
+
+
+## redis各种类型已经使用场景
+
+42_string类型使用场景
+最常用
+
+SET key value
+GET key
+同时设置/获取多个键值
+
+MSET key value [key value…]
+MGET key [key…]
+数值增减
+
+递增数字 INCR key（可以不用预先设置key的数值。如果预先设置key但值不是数字，则会报错)
+增加指定的整数 INCRBY key increment
+递减数值 DECR key
+减少指定的整数 DECRBY key decrement
+获取字符串长度
+
+STRLEN key
+分布式锁
+
+SETNX key value
+SET key value [EX seconds] [PX milliseconds] [NX|XX]
+EX：key在多少秒之后过期
+PX：key在多少毫秒之后过期
+NX：当key不存在的时候，才创建key，效果等同于setnx
+XX：当key存在的时候，覆盖key
+应用场景
+
+商品编号、订单号采用INCR命令生成
+是否喜欢的文章
+43_hash类型使用场景
+Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
+
+一次设置一个字段值 HSET key field value
+
+一次获取一个字段值 HGET key field
+
+一次设置多个字段值 HMSET key field value [field value …]
+
+一次获取多个字段值 HMGET key field [field …]
+
+获取所有字段值 HGETALL key
+
+获取某个key内的全部数量 HLEN
+
+删除一个key HDEL
+
+应用场景 - 购物车早期，当前小中厂可用
+
+新增商品 hset shopcar:uid1024 334488 1
+新增商品 hset shopcar:uid1024 334477 1
+增加商品数量 hincrby shopcar:uid1024 334477 1
+商品总数 hlen shopcar:uid1024
+全部选择 hgetall shopcar:uid1024
+44_list类型使用场景
+向列表左边添加元素 LPUSH key value [value …]
+
+向列表右边添加元素 RPUSH key value [value …]
+
+查看列表 LRANGE key start stop
+
+获取列表中元素的个数 LLEN key
+
+应用场景 - 微信文章订阅公众号
+
+大V作者李永乐老师和ICSDN发布了文章分别是11和22
+阳哥关注了他们两个，只要他们发布了新文章，就会安装进我的List
+lpush likearticle:阳哥id1122
+查看阳哥自己的号订阅的全部文章，类似分页，下面0~10就是一次显示10条
+lrange likearticle:阳哥id 0 10
+45_set类型使用场景
+添加元素 SADD key member [member …]
+
+删除元素 SREM key member [member …]
+
+获取集合中的所有元素 SMEMBERS key
+
+判断元素是否在集合中 SISMEMBER key member
+
+获取集合中的元素个数 SCARD key
+
+从集合中随机弹出一个元素，元素不删除 SRANDMEMBER key [数字]
+
+从集合中随机弹出一个元素，出一个删一个 SPOP key[数字]
+
+集合运算
+
+集合的差集运算A - B
+属于A但不属于B的元素构成的集合
+SDIFF key [key …]
+集合的交集运算A ∩ B
+属于A同时也属于B的共同拥有的元素构成的集合
+SINTER key [key …]
+集合的并集运算A U B
+属于A或者属于B的元素合并后的集合
+SUNION key [key …]
+应用场景
+
+微信抽奖小程序
+用户ID，立即参与按钮
+SADD key 用户ID
+显示已经有多少人参与了、上图23208人参加
+SCARD key
+抽奖(从set中任意选取N个中奖人)
+SRANDMEMBER key 2（随机抽奖2个人，元素不删除）
+SPOP key 3（随机抽奖3个人，元素会删除）
+微信朋友圈点赞
+新增点赞
+sadd pub:msglD 点赞用户ID1 点赞用户ID2
+取消点赞
+srem pub:msglD 点赞用户ID
+展现所有点赞过的用户
+SMEMBERS pub:msglD
+点赞用户数统计，就是常见的点赞红色数字
+scard pub:msgID
+判断某个朋友是否对楼主点赞过
+SISMEMBER pub:msglD用户ID
+微博好友关注社交关系
+共同关注：我去到局座张召忠的微博，马上获得我和局座共同关注的人
+sadd s1 1 2 3 4 5
+sadd s2 3 4 5 6 7
+SINTER s1 s2
+我关注的人也关注他(大家爱好相同)
+QQ内推可能认识的人
+sadd s1 1 2 3 4 5
+sadd s2 3 4 5 6 7
+SINTER s1 s2
+SDIFF s1 s2
+SDIFF s2 s1
+46_zset类型使用场景
+向有序集合中加入一个元素和该元素的分数
+
+添加元素 ZADD key score member [score member …]
+
+按照元素分数从小到大的顺序返回索引从start到stop之间的所有元素 ZRANGE key start stop [WITHSCORES]
+
+获取元素的分数 ZSCORE key member
+
+删除元素 ZREM key member [member …]
+
+获取指定分数范围的元素 ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
+
+增加某个元素的分数 ZINCRBY key increment member
+
+获取集合中元素的数量 ZCARD key
+
+获得指定分数范围内的元素个数 ZCOUNT key min max
+
+按照排名范围删除元素 ZREMRANGEBYRANK key start stop
+
+获取元素的排名
+
+从小到大 ZRANK key member
+
+从大到小 ZREVRANK key member
+
+应用场景
+
+根据商品销售对商品进行排序显示
+定义商品销售排行榜（sorted set集合），key为goods:sellsort，分数为商品销售数量。
+商品编号1001的销量是9，商品编号1002的销量是15 - zadd goods:sellsort 9 1001 15 1002
+有一个客户又买了2件商品1001，商品编号1001销量加2 - zincrby goods:sellsort 2 1001
+求商品销量前10名 - ZRANGE goods:sellsort 0 10 withscores
+抖音热搜
+点击视频
+ZINCRBY hotvcr:20200919 1 八佰
+ZINCRBY hotvcr:20200919 15 八佰 2 花木兰
+展示当日排行前10条
+ZREVRANGE hotvcr:20200919 0 9 withscores
+
 
 
 
@@ -1715,3 +1893,4 @@ bgrewriteaof
 
 [从应用到底层 36张图带你进入Redis世界](https://www.jianshu.com/p/1ac051c4184c)
 
+[Redis的Gossip协议](https://mp.weixin.qq.com/s/dW0I29Sw86lU0qHpxyhdmw)
