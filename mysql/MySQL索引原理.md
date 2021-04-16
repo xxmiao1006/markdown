@@ -668,7 +668,13 @@ ICP的使用限制
 
  1、从磁盘读取待变更的行所在的数据页，读取至内存页中。 
 
-2、对内存页中的行，执行变更操作 3、将变更后的数据页，写入至磁盘中。 步骤1，涉及 随机 读磁盘IO； 步骤3，涉及 随机 写磁盘IO；
+2、对内存页中的行，执行变更操作
+
+ 3、将变更后的数据页，写入至磁盘中。 
+
+步骤1，涉及 随机 读磁盘IO；
+
+ 步骤3，涉及 随机 写磁盘IO；
 
  Change buffer机制，优化了步骤1——避免了随机读磁盘IO 
 
@@ -690,7 +696,25 @@ merge 的执行流程是这样的：从磁盘读入数据页到内存（老版�
 
 
 
-11
+11 可以使用 alter table A engine=InnoDB 命令来重建表，来减少空洞。在 MySQL 5.6 版本开始引入的 Online DDL，对这个操作流程做了优化。我给你简单描述一下引入了 Online DDL 之后，重建表的流程：
+
+建立一个临时文件，扫描表 A 主键的所有数据页；
+
+用数据页中表 A 的记录生成 B+ 树，存储到临时文件中；
+
+生成临时文件的过程中，将所有对 A 的操作记录在一个日志文件（row log）中，对应的是图中 state2 的状态；
+
+临时文件生成后，将日志文件中的操作应用到临时文件，得到一个逻辑数据上与表 A 相同的数据文件，对应的就是图中 state3 的状态；
+
+用临时文件替换表 A 的数据文件。
+
+alter 语句在启动的时候需要获取 MDL 写锁，但是这个写锁在真正拷贝数据之前就退化成读锁了。为什么要退化呢？为了实现 Online，MDL 读锁不会阻塞增删改操作。那为什么不干脆直接解锁呢？为了保护自己，禁止其他线程对这个表同时做 DDL。而对于一个大表来说，Online DDL 最耗时的过程就是拷贝数据到临时表的过程，这个步骤的执行期间可以接受增删改操作。所以，相对于整个 DDL 过程来说，锁的时间非常短。对业务来说，就可以认为是 Online 的。
+
+需要补充说明的是，上述的这些重建方法都会扫描原表数据和构建临时文件。对于很大的表来说，这个操作是很消耗 IO 和 CPU 资源的。因此，如果是线上服务，你要很小心地控制操作时间。如果想要比较安全的操作的话，我推荐你使用 GitHub 开源的 gh-ost 来做。
+
+根据表 A 重建出来的数据是放在“tmp_file”里的，这个临时文件是 InnoDB 在内部创建出来的。整个 DDL 过程都在 InnoDB 内部完成。对于 server 层来说，没有把数据挪动到临时表，是一个“原地”操作，这就是“inplace”名称的来源。所以，我现在问你，如果你有一个 1TB 的表，现在磁盘间是 1.2TB，能不能做一个 inplace 的 DDL 呢？答案是不能。因为，tmp_file 也是要占用临时空间的。
+
+为什么online DDL期间要MDL写锁->读锁->写锁，再开始和临时文件替换表A的过程中，会升级为写锁，这时候其他DML语句执行的时候需要读锁，但是实际申请MDL锁里面是一个队列，而且写锁优先级要高于读锁，如果有人占了写锁，别的session申请不到读锁，会阻塞别人获取读锁，也就是说DML语句执行不了了。防止合并row log或者替换表的时候有 DML操作，这时候仍然会阻塞DML，也就是两次写锁期间是阻塞的。
 
 
 
@@ -704,12 +728,12 @@ merge 的执行流程是这样的：从磁盘读入数据页到内存（老版�
 
 
 
+1. 使用 show index from table_name 命令，查看表索引的基数 
+2.  使用 analyze table table_name 命令，重新统计索引信息,解决采样导致的扫描行数出错的问题
 
+3. 查看表占用硬盘空间大小的SQL语句如下：(用M做展示单位)
 
-1. 使用 show index from table_name 命令，查看表索引的基数 2. 使用 analyze table table_name 命令，重新统计索引信息,解决采样导致的扫描行数出错的问题
-
-2. 查看表占用硬盘空间大小的SQL语句如下：(用M做展示单位)
-
+```sql
 SELECT
 
 concat(round(sum(DATA_LENGTH/ 1024),2),'M')ASsize
@@ -718,8 +742,39 @@ FROM information_schema.TABLES
 
 WHERE table_schema= '数据库名'AND table_name= '表名';
 
+```
 
-optimize table table_name 释放表的磁盘空间
+
+
+ 释放表的磁盘空间
+
+```sql
+optimize table table_name
+```
+
+
+
+3.查询innodb设置的io刷脏页的能力
+
+```sql
+show global variables like 'innodb_io_capacity'  
+```
+
+
+
+4.查看数据库脏页比例
+
+```sql
+ select VARIABLE_VALUE into @a from performance_schema.global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';
+ select VARIABLE_VALUE into @b from performance_schema.global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';
+ select @a/@b;
+```
+
+5.在 InnoDB 中，innodb_flush_neighbors 参数控制刷脏页是否'连坐'，如果硬盘为SSD建议把该参数设置为0，关掉连坐行为。mysql8.0默认为0
+
+
+
+
 
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
 
@@ -738,3 +793,5 @@ optimize table table_name 释放表的磁盘空间
 [MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
 
 [MySQL的MVCC及实现原理](https://blog.csdn.net/qq_35623773/article/details/106107909)
+
+[mysql临键锁](https://www.jianshu.com/p/f7142e39f455)
