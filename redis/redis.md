@@ -1913,3 +1913,8 @@ ZREVRANGE hotvcr:20200919 0 9 withscores
 [从应用到底层 36张图带你进入Redis世界](https://www.jianshu.com/p/1ac051c4184c)
 
 [Redis的Gossip协议](https://mp.weixin.qq.com/s/dW0I29Sw86lU0qHpxyhdmw)
+
+[bitmap算法和布隆过滤器](https://blog.csdn.net/zk3326312/article/details/79411089)
+
+[详解布隆过滤器的原理，使用场景和注意事项](https://zhuanlan.zhihu.com/p/43263751)
+
