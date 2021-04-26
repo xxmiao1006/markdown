@@ -793,3 +793,4 @@ show global variables like 'innodb_io_capacity'
 [MySQL的MVCC及实现原理](https://blog.csdn.net/qq_35623773/article/details/106107909)
 
 [mysql临键锁](https://www.jianshu.com/p/f7142e39f455)
+
