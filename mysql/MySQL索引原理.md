@@ -716,6 +716,8 @@ alter 语句在启动的时候需要获取 MDL 写锁，但是这个写锁在真
 
 
 
+12.z 间隙锁是在可重复读隔离级别下才会生效的。所以，你如果把隔离级别设置为读提交的话，就没有间隙锁了。 但同时，你要解决可能出现的数据和日志不一致问题，需要把 binlog 格式设置为 row。这，也是现在不少公司使用的配置组合。
+
 
 
 
@@ -826,3 +828,8 @@ count(distinctleft(列名, 索引长度))/count(*)
 [MySQL的MVCC及实现原理](https://blog.csdn.net/qq_35623773/article/details/106107909)
 
 [mysql临键锁](https://www.jianshu.com/p/f7142e39f455)
+
+[了解常见的锁类型](https://www.aneasystone.com/archives/2017/11/solving-dead-locks-two.html)
+
+[何登成的《MySQL 加锁处理分析》](https://github.com/hedengcheng/tech)
+
