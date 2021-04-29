@@ -405,7 +405,7 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
 
 
 
-
+[Spring 是如何解决循环依赖的？](https://www.zhihu.com/question/438247718/answer/1730527725)
 
 [java_lyvee的专栏](https://blog.csdn.net/java_lyvee)
 
