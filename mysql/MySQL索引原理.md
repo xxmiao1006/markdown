@@ -809,9 +809,23 @@ row 格式的 binlog，最后会有一个 XID event。
 
 
 
+18. mysql 主备切换流程 GTID模式
 
+    GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 gtid_mode=on 和 enforce_gtid_consistency=on 就可以了。
 
+实例 A’的 GTID 集合记为 set_a，实例 B 的 GTID 集合记为 set_b。接下来，我们就看看现在的主备切换逻辑。我们在实例 B 上执行 start slave 命令，取 binlog 的逻辑是这样的：
 
+实例 B 指定主库 A’，基于主备协议建立连接。
+
+实例 B 把 set_b 发给主库 A’。
+
+实例 A’算出 set_a 与 set_b 的差集，也就是所有存在于 set_a，但是不存在于 set_b 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
+
+a. 如果不包含，表示 A’已经把实例 B 需要的 binlog 给删掉了，直接返回错误；
+
+b. 如果确认全部包含，A’从自己的 binlog 文件里面，找出第一个不在 set_b 的事务，发给 B；
+
+之后就从这个事务开始，往后读文件，按顺序取 binlog 发给 B 去执行。
 
 
 
@@ -929,6 +943,111 @@ binlog_group_commit_sync_no_delay_count 参数，表示累积多少次以后才�
 ```sql
 show variables like '%binlog_format%';
 ```
+
+
+
+11.windows下的mysql配置开启binlog,修改my.ini文件，在[mysqld]下面添加
+
+log_bin=mysql-bin
+binlog-format=ROW
+server-id=1
+
+binlog的三种格式，statement,记录数据库原句，有可能导致，主备所选择的索引不一致，导致主备数据不一致。row，binlog log记录的是操作的字段值，根据binlog_row_image 的默认配置是 FULL包括操作行为的所有字段值，binlog_row_image 设置为 MINIMAL，则会记录必须的字段,一般设置为row，可以根据binlog文件做其他操作，比如在误删除一行数据时，可以做insert，恢复数据
+
+重启mysql后会发现data目录下会多两个文件mysql-bin.000001，mysql-bin.index
+
+查看binlog日志是否开启
+
+```sql
+show variables like '%log_bin%'
+
+log_bin	OFF
+log_bin_basename	
+log_bin_index	
+log_bin_trust_function_creators	OFF
+log_bin_use_v1_row_events	OFF
+sql_log_bin	ON
+
+--查询binlog日志
+show binlog events in 'mysql-bin.000001';
+
+mysql-bin.000001	4	Format_desc	1	123	Server ver: 5.7.27-log, Binlog ver: 4
+mysql-bin.000001	123	Previous_gtids	1	154	
+mysql-bin.000001	154	Anonymous_Gtid	1	219	SET @@SESSION.GTID_NEXT= 'ANONYMOUS'
+mysql-bin.000001	219	Query	1	296	BEGIN
+mysql-bin.000001	296	Table_map	1	347	table_id: 115 (employees.f)
+mysql-bin.000001	347	Update_rows	1	409	table_id: 115 flags: STMT_END_F
+mysql-bin.000001	409	Xid	1	440	COMMIT /* xid=71 */
+
+--使用mysqlbinlog查看详细日志
+mysqlbinlog -vv mysql-bin.000001 --start-position=154
+
+$ mysqlbinlog -vv mysql-bin.000001 --start-position=154
+/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;
+/*!50003 SET @OLD_COMPLETION_TYPE=@@COMPLETION_TYPE,COMPLETION_TYPE=0*/;
+DELIMITER /*!*/;
+# at 4
+#210430  9:20:11 server id 1  end_log_pos 123 CRC32 0x4a1b8737  Start: binlog v 4, server v 5.7.27-log created 210430  9:20:11 at startup
+# Warning: this binlog is either in use or was not closed properly.
+ROLLBACK/*!*/;     
+BINLOG '
+S1uLYA8BAAAAdwAAAHsAAAABAAQANS43LjI3LWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAABLW4tgEzgNAAgAEgAEBAQEEgAAXwAEGggAAAAICAgCAAAACgoKKioAEjQA
+ATeHG0o=
+'/*!*/;
+# at 154
+#210430  9:25:27 server id 1  end_log_pos 219 CRC32 0x6ca329bd  Anonymous_GTID  last_committed=0        sequence_number=1       rbr_only=yes
+/*!50718 SET TRANSACTION ISOLATION LEVEL READ COMMITTED*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 219
+#210430  9:25:27 server id 1  end_log_pos 296 CRC32 0x8bf08bef  Query   thread_id=4     exec_time=0     error_code=0
+SET TIMESTAMP=1619745927/*!*/;
+SET @@session.pseudo_thread_id=4/*!*/;
+SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
+SET @@session.sql_mode=1344274432/*!*/;
+SET @@session.auto_increment_increment=1, @@session.auto_increment_offset=1/*!*/;
+/*!\C utf8mb4 *//*!*/;
+SET @@session.character_set_client=45,@@session.collation_connection=45,@@session.collation_server=8/*!*/;
+SET @@session.lc_time_names=0/*!*/;
+SET @@session.collation_database=DEFAULT/*!*/;
+BEGIN
+/*!*/;
+# at 296
+#210430  9:25:27 server id 1  end_log_pos 347 CRC32 0xfa6d8112  Table_map: `employees`.`f` mapped to number 115
+# at 347
+#210430  9:25:27 server id 1  end_log_pos 409 CRC32 0x02bf3edb  Update_rows: table id 115 flags: STMT_END_F
+
+BINLOG '
+h1yLYBMBAAAAMwAAAFsBAAAAAHMAAAAAAAEACWVtcGxveWVlcwABZgADAwMDAAYSgW36
+h1yLYB8BAAAAPgAAAJkBAAAAAHMAAAAAAAEAAgAD///4AAAAAAAAAAAAAAAA+AAAAAADAAAAAAAA
+ANs+vwI=
+'/*!*/;
+### UPDATE `employees`.`f`
+### WHERE
+###   @1=0 /* INT meta=0 nullable=0 is_null=0 */
+###   @2=0 /* INT meta=0 nullable=1 is_null=0 */
+###   @3=0 /* INT meta=0 nullable=1 is_null=0 */
+### SET
+###   @1=0 /* INT meta=0 nullable=0 is_null=0 */
+###   @2=3 /* INT meta=0 nullable=1 is_null=0 */
+###   @3=0 /* INT meta=0 nullable=1 is_null=0 */
+# at 409
+#210430  9:25:27 server id 1  end_log_pos 440 CRC32 0x00de6e12  Xid = 71
+COMMIT/*!*/;
+SET @@SESSION.GTID_NEXT= 'AUTOMATIC' /* added by mysqlbinlog */ /*!*/;
+DELIMITER ;
+# End of log file
+/*!50003 SET COMPLETION_TYPE=@OLD_COMPLETION_TYPE*/;
+/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=0*/;
+```
+
+binlog 来恢复数据的标准做法是，用 mysqlbinlog 工具解析出来，然后把解析结果整个发给 MySQL 执行。类似下面的命令：
+
+mysqlbinlog master.000001  --start-position=2738 --stop-position=2973 | mysql -h127.0.0.1 -P13000 -u$user -p$pwd;
+
+这个命令的意思是，将 master.000001 文件里面从第 2738 字节到第 2973 字节中间这段内容解析出来，放到 MySQL 去执行。
+
+
 
 
 
