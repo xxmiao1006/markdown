@@ -759,7 +759,7 @@ mysql还有一个比较有趣的刷脏页策略，而 MySQL 中的一个机制�
 
 
 
-14.mysql怎么知道binlog是完整的？（crash-safe相关）
+14.**mysql怎么知道binlog是完整的？（crash-safe相关）**
 
 回答：一个事务的 binlog 是有完整格式的：
 
@@ -773,7 +773,7 @@ row 格式的 binlog，最后会有一个 XID event。
 
 
 
-15.redolog和binlog怎么相关联的？
+15.**redolog和binlog怎么相关联的？**
 
 回答：它们有一个共同的数据字段，叫 XID。崩溃恢复的时候，会按顺序扫描 redo log：
 
@@ -809,23 +809,45 @@ row 格式的 binlog，最后会有一个 XID event。
 
 
 
-18. mysql 主备切换流程 GTID模式
+18. **mysql 主备切换流程 GTID模式**
 
     GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 gtid_mode=on 和 enforce_gtid_consistency=on 就可以了。
 
 实例 A’的 GTID 集合记为 set_a，实例 B 的 GTID 集合记为 set_b。接下来，我们就看看现在的主备切换逻辑。我们在实例 B 上执行 start slave 命令，取 binlog 的逻辑是这样的：
 
-实例 B 指定主库 A’，基于主备协议建立连接。
+​		实例 B 指定主库 A’，基于主备协议建立连接。
 
-实例 B 把 set_b 发给主库 A’。
+​		实例 B 把 set_b 发给主库 A’。
 
-实例 A’算出 set_a 与 set_b 的差集，也就是所有存在于 set_a，但是不存在于 set_b 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
+​		实例 A’算出 set_a 与 set_b 的差集，也就是所有存在于 set_a，但是不存在于 set_b 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
 
-a. 如果不包含，表示 A’已经把实例 B 需要的 binlog 给删掉了，直接返回错误；
+​				a. 如果不包含，表示 A’已经把实例 B 需要的 binlog 给删掉了，直接返回错误；
 
-b. 如果确认全部包含，A’从自己的 binlog 文件里面，找出第一个不在 set_b 的事务，发给 B；
+​				b. 如果确认全部包含，A’从自己的 binlog 文件里面，找出第一个不在 set_b 的事务，发给 B；
 
 之后就从这个事务开始，往后读文件，按顺序取 binlog 发给 B 去执行。
+
+
+
+
+
+19 **mysql semi-sync**
+
+半同步复制，也就是 semi-sync replication。semi-sync 做了这样的设计：
+
+​		事务提交的时候，主库把 binlog 发给从库；
+
+​		从库收到 binlog 以后，发回给主库一个 ack，表示收到了；
+
+​		主库收到这个 ack 以后，才能给客户端返回“事务完成”的确认。
+
+也就是说，如果启用了 semi-sync，就表示所有给客户端发送过确认的事务，都确保了备库已经收到了这个日志。
+
+
+
+
+
+
 
 
 
@@ -1049,7 +1071,31 @@ mysqlbinlog master.000001  --start-position=2738 --stop-position=2973 | mysql -h
 
 
 
+12.查看和连接时间有关的MySQL系统变量
 
+```sql
+ show variables like '%timeout%'
+ 
+ 
+ connect_timeout	10
+delayed_insert_timeout	300
+have_statement_timeout	YES
+innodb_flush_log_at_timeout	1
+innodb_lock_wait_timeout	50
+innodb_rollback_on_timeout	OFF
+interactive_timeout	28800
+lock_wait_timeout	31536000
+net_read_timeout	30
+net_write_timeout	60
+rpl_stop_slave_timeout	31536000
+slave_net_timeout	60
+wait_timeout	28800
+```
+
+​	其中wait_timeout就是负责超时控制的变量，其时间为长度为28800s，就是8个小时，那么就是说MySQL的服务会在操作间隔8小时后断开，需要再次重连。
+
+  interactive_timeout：服务器关闭交互式连接前等待活动的秒数。交互式客户端定义为在mysql_real_connect()中使用CLIENT_INTERACTIVE选项的客户端。又见wait_timeout 
+    wait_timeout:服务器关闭非交互连接之前等待活动的秒数。在线程启动时，根据全局wait_timeout值或全局interactive_timeout值初始化会话wait_timeout值，取决于客户端类型(由mysql_real_connect()的连接选项CLIENT_INTERACTIVE定义)，又见interactive_timeout 
 
 
 
