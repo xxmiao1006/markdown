@@ -116,3 +116,9 @@ typedef struct dictEntry {
 } dictEntry;
 ```
 
+
+
+
+
+[redis中文注释版源码](https://github.com/huangz1990/redis-3.0-annotated)
+
