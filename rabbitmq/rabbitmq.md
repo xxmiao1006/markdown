@@ -151,7 +151,47 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 
 把需要的队列做成镜像队列，存在与多个节点属于**RabbitMQ的HA方案。**该模式解决了普通模式中的问题，其实质和普通模式不同之处在于，消息实体会主动在镜像节点间同步，而不是在客户端取数据时临时拉取。该模式带来的副作用也很明显，除了降低系统性能外，如果镜像队列数量过多，加之大量的消息进入，集群内部的网络带宽将会被这种同步通讯大大消耗掉。所以在对可靠性要求较高的场合中适用。
 
+
+
+![rabbitmq权限](E:\git-markdown\markdown\images\rabbitmq\rabbitmq权限.png)
+
+
+
+![rabbitmq权限-2](E:\git-markdown\markdown\images\rabbitmq\rabbitmq权限-2.png)
+
+
+
+
+
+### 问题
+
+1. 什么样的消息会进入死信队列？
+
+1.消息的TTL过期。
+2.消费者对broker应答Nack，并且消息禁止重回队列。
+3.Queue队列长度已达上限。
+
+
+
+2. 如果MQ数据丢失了，有哪几个方面？
+
+生产者(可以用transcation或者confirm模式解决)，
+
+消息队列(持久化到磁盘)，
+
+消费者(手动确认ACK)。
+
+
+
+
+
 [搭建rabbitmq高可用](https://www.cnblogs.com/knowledgesea/p/6535766.html)
 
 [RabbitMQ如何处理消息丢失](https://segmentfault.com/a/1190000019125512)
+
+[消息队列之 RabbitMQ](https://www.jianshu.com/p/79ca08116d57)
+
+[springboot + rabbitmq 消息确认机制](https://blog.csdn.net/zhangweiwei2020/article/details/107250202/)
+
+[rabbitmq unacked消息如何处理_RabbitMQ 如何保证消息可靠性(详细)](https://blog.csdn.net/weixin_39774808/article/details/111173256)
 
