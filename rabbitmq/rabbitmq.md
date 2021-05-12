@@ -200,4 +200,3 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 [rabbitmq unacked消息如何处理_RabbitMQ 如何保证消息可靠性(详细)](https://blog.csdn.net/weixin_39774808/article/details/111173256)
 
 [如何保证消息不被重复消费？](https://www.cnblogs.com/aaron911/p/11612920.html)
-
