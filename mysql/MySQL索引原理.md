@@ -1099,6 +1099,17 @@ wait_timeout	28800
 
 
 
+13.innodb buffer pool size
+
+```sql
+SELECT @@innodb_buffer_pool_size/1024/1024/1024;
+show variables like 'innodb_buffer_pool%';
+```
+
+
+
+
+
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
 
 [MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
