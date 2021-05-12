@@ -183,6 +183,10 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 
 
 
+3. 如何避免消息重复投递或重复消费(消费者处理消息幂等?)
+
+在消息⽣生产时，MQ内部针对每条⽣生产者发送的消息⽣生成⼀一个inner-msg-id，作为去重和幂等的依据（消息投递失败并重传），避免重复的消息进⼊入队列列；在消息消费时，要求消息体中必须要有⼀个bizId（对于同⼀业务全局唯一，如⽀支付ID、订单ID、帖⼦子ID等）作为去重和幂等的依据，避免同⼀条消息被重复消费。
+
 
 
 [搭建rabbitmq高可用](https://www.cnblogs.com/knowledgesea/p/6535766.html)
@@ -194,4 +198,6 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 [springboot + rabbitmq 消息确认机制](https://blog.csdn.net/zhangweiwei2020/article/details/107250202/)
 
 [rabbitmq unacked消息如何处理_RabbitMQ 如何保证消息可靠性(详细)](https://blog.csdn.net/weixin_39774808/article/details/111173256)
+
+[如何保证消息不被重复消费？](https://www.cnblogs.com/aaron911/p/11612920.html)
 
