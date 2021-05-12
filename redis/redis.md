@@ -1677,6 +1677,8 @@ For check, fix, reshard, del-node, set-timeout you can specify the host and port
 
 ## 持久化
 
+详情见redis设计与实现（第二版pdf122页）
+
 ### 一. AOF
 
 ​		AOF持久化是通过保存Redis服务器所执行的写命令来记录数据库状态的
@@ -1984,7 +1986,7 @@ struct saveparam {
 
 
 
-#### 3. RDB混合AOF
+#### 3. RDB混合AOF(推荐使用)
 
 ​		Redis 4.0 中提出了一个混合使用 AOF 日志和内存快照的方法。简单来说，内存快照以一定的频率执行，在两次快照之间，使用 AOF 日志记录这期间的所有命令操作。
 
