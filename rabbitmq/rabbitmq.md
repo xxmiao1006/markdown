@@ -200,3 +200,10 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 [rabbitmq unacked消息如何处理_RabbitMQ 如何保证消息可靠性(详细)](https://blog.csdn.net/weixin_39774808/article/details/111173256)
 
 [如何保证消息不被重复消费？](https://www.cnblogs.com/aaron911/p/11612920.html)
+
+[消息队列面试连环问：如何保证消息不丢失？处理重复消息？消息有序性？消息堆积处理？](https://mp.weixin.qq.com/s?__biz=MzkxNTE3NjQ3MA==&mid=2247485753&idx=1&sn=d22f8adc8eb0dfc08163e160127f6b17&chksm=c1626440f615ed565d8a2ceee7335ddce26ce2d9364474a276e8dbb8767bcc6ebb0f7e298f71&mpshare=1&scene=24&srcid=0420JPgrORaR97Ywr7QgNIH0&sharer_sharetime=1618881118549&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
+
+[RabbitMQ 七种队列模式应用场景案例分析（通俗易懂）](https://mp.weixin.qq.com/s?__biz=MzI5ODI5NDkxMw==&mid=2247539541&idx=3&sn=c64045d8776aa13509acd5d4b7688a43&chksm=ecaa10bbdbdd99adce2976bba0605d142f09051063699dff962b65d311da7796fb8fc8b5720e&mpshare=1&scene=24&srcid=0420GkKpKjoAdT4bpfp99ZnW&sharer_sharetime=1618875716031&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
+
+[面试题系列：MQ 夺命连环11问](https://mp.weixin.qq.com/s?__biz=MzI0NTE4NjA0OQ==&mid=2658374961&idx=1&sn=63aea1ec6fe47dca3542900af5c054dc&chksm=f2d55e5fc5a2d749af5ebb965eac0d09ba2f586875f119fe98db3a059ac331a52a8bd842fe06&mpshare=1&scene=24&srcid=0503wGpBC7g9bVqOPOw9755r&sharer_sharetime=1620033842736&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
+
