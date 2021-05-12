@@ -1,4 +1,4 @@
-## redis
+redis
 
 docker	启动redis并配置密码
 
@@ -1683,16 +1683,32 @@ For check, fix, reshard, del-node, set-timeout you can specify the host and port
 
 ​		AOF 日志是写后日志，“写后”的意思是 Redis 是先执行命令，把数据写入内存，然后才记录日志。那 AOF 为什么要先执行命令再记日志呢？为了避免额外的检查开销，Redis 在向 AOF 里面记录日志的时候，并不会先去对这些命令进行语法检查。所以，如果先记日志再执行命令的话，日志中就有可能记录了错误的命令，Redis 在使用日志恢复数据时，就可能会出错；除此之外，AOF 还有一个好处：它是在命令执行后才记录日志，所以不会阻塞当前的写操作。
 
-#### **AOF的实现原理**
+#### **1. AOF的实现原理**
 
 ​		AOF持久化功能的实现可以分为命令追加(append)，文件写入，文件同步（sync）三个步骤
 
 * 命令追加(append)：服务器在执行完一个命令后，会以协议格式将被执行的写命令追加到服务器状态的aof_buf缓冲区的末尾。
-* 文件写入：redies的服务器进程实际就是一个事件循环（loop），这个循环中的文件事件负责接受客户端的命令请求，以及向客户端回复，而时间事件就负责执行像serverCron函数（也是检查是否满足rdb持久化条件的函数）这样需要定时运行的函数
+* 文件写入和同步：redies的服务器进程实际就是一个事件循环（loop），这个循环中的文件事件负责接受客户端的命令请求，以及向客户端回复，而时间事件就负责执行像serverCron函数（也是检查是否满足rdb持久化条件的函数）这样需要定时运行的函数。
+
+```c
+//伪代码
+def eventloop():
+	while true:
+		//处理文件事件，接受命令请求以及发送命令回复
+		//处理命令请求时可能会有新内容被追加到aof_buf缓冲区中
+		processFileEvents();
+
+		//处理时间事件
+		processTimeEvents();
+		
+		//考虑是否将aof_buf缓冲区中的所有内容写入和保存到aof文件中
+		//此函数的行为由服务器配置的appendfsync选项的值来决定
+		flushAppendOnlyFile();
+```
 
 
 
-#### **AOF三种写盘策略**
+#### **2. AOF三种写盘策略**
 
 * **Always**，同步写回：每个写命令执行完，立马同步地将日志写回磁盘；
 * **Everysec**，每秒写回：每个写命令执行完，只是先把日志写到 AOF 文件的内存缓冲区，每隔一秒把缓冲区中的内容写入磁盘；
@@ -1722,7 +1738,7 @@ For check, fix, reshard, del-node, set-timeout you can specify the host and port
 
 
 
-#### AOF重写机制
+#### 3. AOF重写机制
 
 ​		AOF重写并不需要对原有AOF文件进行任何的读取，写入，分析等操作，这个功能是通过读取服务器当前的数据库状态来实现的。
 
@@ -1751,7 +1767,230 @@ For check, fix, reshard, del-node, set-timeout you can specify the host and port
 
 当前列表键list在数据库中的值就为["C", "D", "E", "F", "G"]。要使用尽量少的命令来记录list键的状态，最简单的方式不是去读取和分析现有AOF文件的内容，，而是直接读取list键在数据库中的当前值，然后用一条RPUSH list "C" "D" "E" "F" "G"代替前面的6条命令。
 
-**AOF重写功能的实现原理**
+##### **AOF重写功能的实现原理**
+
+首先从数据库中读取键现在的值，然后用一条命令去记录键值对，代替之前记录该键值对的多个命令
+
+```python
+def AOF_REWRITE(tmp_tile_name):
+
+  f = create(tmp_tile_name)
+
+  # 遍历所有数据库
+  for db in redisServer.db:
+
+    # 如果数据库为空，那么跳过这个数据库
+    if db.is_empty(): continue
+
+    # 写入 SELECT 命令，用于切换数据库
+    f.write_command("SELECT " + db.number)
+
+    # 遍历所有键
+    for key in db:
+
+      # 如果键带有过期时间，并且已经过期，那么跳过这个键
+      if key.have_expire_time() and key.is_expired(): continue
+
+      if key.type == String:
+
+        # 用 SET key value 命令来保存字符串键
+
+        value = get_value_from_string(key)
+
+        f.write_command("SET " + key + value)
+
+      elif key.type == List:
+
+        # 用 RPUSH key item1 item2 ... itemN 命令来保存列表键
+
+        item1, item2, ..., itemN = get_item_from_list(key)
+
+        f.write_command("RPUSH " + key + item1 + item2 + ... + itemN)
+
+      elif key.type == Set:
+
+        # 用 SADD key member1 member2 ... memberN 命令来保存集合键
+
+        member1, member2, ..., memberN = get_member_from_set(key)
+
+        f.write_command("SADD " + key + member1 + member2 + ... + memberN)
+
+      elif key.type == Hash:
+
+        # 用 HMSET key field1 value1 field2 value2 ... fieldN valueN 命令来保存哈希键
+
+        field1, value1, field2, value2, ..., fieldN, valueN =\
+        get_field_and_value_from_hash(key)
+
+        f.write_command("HMSET " + key + field1 + value1 + field2 + value2 +\
+                        ... + fieldN + valueN)
+
+      elif key.type == SortedSet:
+
+        # 用 ZADD key score1 member1 score2 member2 ... scoreN memberN
+        # 命令来保存有序集键
+
+        score1, member1, score2, member2, ..., scoreN, memberN = \
+        get_score_and_member_from_sorted_set(key)
+
+        f.write_command("ZADD " + key + score1 + member1 + score2 + member2 +\
+                        ... + scoreN + memberN)
+
+      else:
+
+        raise_type_error()
+
+      # 如果键带有过期时间，那么用 EXPIREAT key time 命令来保存键的过期时间
+      if key.have_expire_time():
+        f.write_command("EXPIREAT " + key + key.expire_time_in_unix_timestamp())
+
+    # 关闭文件
+    f.close()
+```
+
+​		实际为了避免执行命令时造成客户端输入缓冲区溢出，重写程序在处理list hash set zset时，会检查键所包含的元素的个数，如果元素的数量超过了redis.h/REDIS_AOF_REWRITE_ITEMS_PER_CMD常量的值，那么重写程序会使用多条命令来记录键的值，而不是单使用一条命令。该常量默认值是64– 即每条命令设置的元素的个数 是最多64个，使用多条命令重写实现集合键中元素数量超过64个的键。
+
+##### **AOF后台重写（bgrewriteaof的原理）**
+
+​		很明显AOF的重写函数aof_rewrite函数可以很好的创建一个新AOF文件，但是这个函数会有大量的写入操作，如果由主线程来执行它，服务端则无法处理客户端发来的请求。所以是不能在主线程中执行它的。
+
+​		所以redis决定将AOF重写程序放到**子进程**里执行，这样做可以同时达到两个目的：
+
+* 子进程在进行aof重写期间，服务端可以继续处理客户端的命令请求。
+* 子进程带有服务器进程的副本，使用子进程而不是使用子线程，可以避免在使用锁的情况下保证数据的安全性。
+
+​		不过，使用子进程的情况下，也有一个问题需要解决，当子进程在进行aof重写期间，服务端进程还需要继续处理命令，请求，而新的命令可能会对现有的数据库状态进行修改，从而使得服务器当前的数据库状态和重写后的aof保存的数据库状态不一致。
+
+​		为了解决这种数据不一致的问题，Redis增加了一个AOF重写缓存，这个缓存在fork出子进程之后开始启用，Redis服务器主进程在执行完写命令之后，会同时将这个**写命令追加到AOF缓冲区和AOF重写缓冲区**
+
+​		即子进程在执行AOF重写时，主进程需要执行以下三个工作：
+
+- 执行client发来的命令请求；
+- 将写命令追加到现有的AOF文件中；
+- 将写命令追加到AOF重写缓存中。
+
+​		这样可以保证AOF缓冲区的内容会定期被写入和同步到AOF文件中，对现有的AOF文件的处理工作会正常进行；从创建子进程开始，服务器执行的所有写操作都会被记录到AOF重写缓冲区中。
+
+当子进程完成对AOF文件重写之后，**它会向父进程发送一个完成信号，父进程接到该完成信号之后，会调用一个信号处理函数**，该函数完成以下工作：
+
+​		将AOF重写缓存中的内容全部写入到新的AOF文件中；这个时候新的AOF文件所保存的数据库状态和服务器当前的数据库状态一致；
+​		对新的AOF文件进行改名，原子的覆盖原有的AOF文件；完成新旧两个AOF文件的替换。
+​		当这个信号处理函数执行完毕之后，主进程就可以继续像往常一样接收命令请求了。在整个AOF后台重写过程中，**只有最后的“主进程写入命令到AOF缓存”和“对新的AOF文件进行改名，覆盖原有的AOF文件。”这两个步骤（信号处理函数执行期间）会造成主进程阻塞**，在其他时候，AOF后台重写都不会对主进程造成阻塞，这将AOF重写对性能造成的影响降到最低。
+
+
+
+##### 触发AOF后台重写的条件
+
+AOF重写可以由用户通过调用BGREWRITEAOF手动触发。
+
+服务器在AOF功能开启的情况下，会维持以下三个变量：
+
+​	记录当前AOF文件大小的变量`aof_current_size`。
+​	记录最后一次AOF重写之后，AOF文件大小的变量`aof_rewrite_base_size`。
+​	增长百分比变量`aof_rewrite_perc`。
+
+每次当serverCron（服务器周期性操作函数）函数执行时，它会检查以下条件是否全部满足，如果全部满足的话，就触发自动的AOF重写操作：
+
+​	没有BGSAVE命令（RDB持久化）/AOF持久化在执行；
+​	没有BGREWRITEAOF在进行；
+​	当前AOF文件大小要大于`server.aof_rewrite_min_size`（默认为1MB），或者在redis.conf配置了`auto-aof-rewrite-min-size`大小；
+​	当前AOF文件大小和最后一次重写后的大小之间的比率等于或者等于指定的增长百分比（在配置文件设置了`auto-aof-rewrite-percentage`参数，不设置默认为100%）
+
+如果前面三个条件都满足，并且当前AOF文件大小比最后一次AOF重写时的大小要大于指定的百分比，那么触发自动AOF重写。
+
+> `auto-aof-rewrite-min-size`: 表示运行AOF重写时文件的最小大小，默认为64MB
+>
+> `auto-aof-rewrite-percentage`: 这个值的计算方法是：当前AOF文件大小和上一次重写后AOF文件大小的差值，再除以上一次重写后AOF文件大小。也就是当前AOF文件比上一次重写后AOF文件的增量大小，和上一次重写后AOF文件大小的比值。
+>
+> AOF文件大小同时超出上面这两个配置项时，会触发AOF重写。  
+
+
+
+#### 4. AOF文件的载入和还原
+
+​		因为AOF文件里面包含了重建数据库状态所需的所有命令，所以服务器只要读入并重新执行一遍aof文件里面保存的所有写命令，就可以还原服务器关闭之前的数据库状态。
+
+​		redis读取aof文件并还原数据库状态的详细状态如下：
+
+* 创建一个不网络状态的伪客户端（fake client）：因为redis的命令只能在客户端上下文中执行，而载入aof文件时所使用的命令直接来源于aof文件而不是来源于网络连接，所以服务器使用了一个没有网络连接的伪客户端来执行aof文件保存的写命令，伪客户端执行命令的效果和带网络连接的客户端执行命令的效果完全是一样的。
+* 从aof文件中分析并且读取出一条写命令。
+* 使用伪客户端执行被读出的写命令。
+* 一直执行上面两步，知道aof文件中的所有写命令都被处理完毕。
+
+​		
+
+### 二. RDB
+
+​		redis提供RDB持久化功能，这个功能可以将redis在内存中的数据库状态保存到磁盘里，避免数据意外丢失。它可以将某个时间点上的数据库状态保存到一个RDB文件中，生成的RDB文件是一个经过压缩的二进制文件，通过这个文件可以还原生成的RDB文件时的数据库状态。
+
+#### 1. RDB文件的创建和载入
+
+​		有两个redis命令可以用于生成RDB文件，一个是SAVE，一个是BGSAVE。创建的实际工作由`rdb.c\rdbsave`函数完成
+
+​		SAVE命令会阻塞redis服务器进程，知道RDB文件创建完成为止，在RDB文件创建完成前，服务器不能处理任何请求。
+
+​		和SAVE命令不同的是，BGSAVE命令会派生出一个子进程，然后由子进程负责创建RDB文件，服务器进程（父进程）继续处理请求。bgsave 避免阻塞。
+
+> 这里就要说到一个常见的误区了，避免阻塞和正常处理写操作并不是一回事。此时，主线程的确没有阻塞，可以正常接收请求，但是，为了保证快照完整性，它只能处理读操作，因为不能修改正在执行快照的数据。（Redis 借助操作系统提供的写时复制技术（Copy-On-Write, COW），在执行快照的同时，正常处理写操作。）
+
+​		RDB文件的载入是在服务器启动时启动执行的，所以redis并没有专门用于载入RDB文件的命令，只要redis服务器启动时监测到RDB文件的存在，它就会自动载入RDB文件。
+
+​		载入RDB的工作实际上由`rdb.c\rdbload`这个函数自动完成的。另外值得一提的是，如果服务器开启了AOF持久化功能，那么服务器会优先使用AOF文件来还原数据库状态，只有在AOF持久化功能处于关闭状态时，服务器才会使用RDB文件来还原数据库状态。
+
+**注意：在bgsave执行期间，`save`,`bgsave`命令会被拒绝，`bgrewriteaof`命令会被延迟到`bgsave`之后执行。**
+
+
+
+#### 2. RDB的间隔性保存
+
+​		用户通过配置文件的save选项设置多个保存条件，但只要其中一个任意条件被满足，服务器就会执行BGSAVE命令。
+
+```bash
+save 900 1
+save 300 10
+save 60 10000
+```
+
+​		Redis服务器是如何根据save选项设置的保存条件，自动执行bgsave命令呢？
+
+​		redis服务器启动时，用户可以通过指定配置文件或者传入启动参数的方式设置save选项，如果用户没有主动设置save选项，那么服务器会为save选项设置默认条件，如上。接着服务器程序会根据save选项所设置的保存条件，设置服务器状态redisServer结构的saveparams属性：
+
+```c
+struct redisServer {
+    struct saveparam *saveparams;   /* Save points array for RDB */
+    
+    // 自从上次 SAVE 执行以来，数据库被修改的次数
+    long long dirty;                /* Changes to DB from the last save */
+
+    // 最后一次完成 SAVE 的时间
+    time_t lastsave;                /* Unix time of last successful save */
+}
+
+// 服务器的保存条件（BGSAVE 自动执行的条件）
+struct saveparam {
+
+    // 多少秒之内
+    time_t seconds;
+
+    // 发生多少次修改
+    int changes;
+
+};
+```
+
+​		redis的服务器周期性操作函数serverCron默认每隔100ms就会执行一次，该函数用于对正在运行的服务器进行维护，它的其中一项工作就是检查save选项所设置的条件是否已经满足，满足的话，就执行`BGSAVE`命令
+
+​		RDB可以快速恢复数据库，也就是只需要把 RDB 文件直接读入内存，内存快照也有它的局限性。它拍的是一张内存的“大合影”，不可避免地会耗时耗力。虽然，Redis 设计了 bgsave 和写时复制方式，尽可能减少了内存快照对正常读写的影响，但是，频繁快照仍然是不太能接受的。
+
+
+
+#### 3. RDB混合AOF
+
+​		Redis 4.0 中提出了一个混合使用 AOF 日志和内存快照的方法。简单来说，内存快照以一定的频率执行，在两次快照之间，使用 AOF 日志记录这期间的所有命令操作。
+
+​		设置的参数是： aof-use-rdb-preamble yes
+
+
 
 
 
@@ -1791,9 +2030,17 @@ rdb模式：
 
 
 
+
+
+
+
+
+
+
+
 ## redis各种类型已经使用场景
 
-#### 42_string类型使用场景
+#### 1. string类型使用场景
 
 最常用
 
@@ -1827,7 +2074,7 @@ XX：当key存在的时候，覆盖key
 
 是否喜欢的文章
 
-#### 43_hash类型使用场景
+#### 2. hash类型使用场景
 
 Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
 
@@ -1853,7 +2100,7 @@ Redis的Hash类型相当于Java中Map<String, Map<Object, Object>>
 商品总数 hlen shopcar:uid1024
 全部选择 hgetall shopcar:uid1024
 
-#### 44_list类型使用场景
+#### 3. list类型使用场景
 
 向列表左边添加元素 LPUSH key value [value …]
 
@@ -1871,7 +2118,7 @@ lpush likearticle:阳哥id1122
 查看阳哥自己的号订阅的全部文章，类似分页，下面0~10就是一次显示10条
 lrange likearticle:阳哥id 0 10
 
-#### 45_set类型使用场景
+#### 4. set类型使用场景
 
 添加元素 SADD key member [member …]
 
@@ -1939,7 +2186,7 @@ SINTER s1 s2
 SDIFF s1 s2
 SDIFF s2 s1
 
-#### 46_zset类型使用场景
+#### 5. zset类型使用场景
 
 向有序集合中加入一个元素和该元素的分数
 
@@ -1984,6 +2231,240 @@ ZREVRANGE hotvcr:20200919 0 9 withscores
 
 
 
+rdbSave方法源码  rdbSaveBackground方法源码
+
+```c
+/* Save the DB on disk. Return REDIS_ERR on error, REDIS_OK on success 
+ *
+ * 将数据库保存到磁盘上。
+ *
+ * 保存成功返回 REDIS_OK ，出错/失败返回 REDIS_ERR 。
+ */
+int rdbSave(char *filename) {
+    dictIterator *di = NULL;
+    dictEntry *de;
+    char tmpfile[256];
+    char magic[10];
+    int j;
+    long long now = mstime();
+    FILE *fp;
+    rio rdb;
+    uint64_t cksum;
+
+    // 创建临时文件
+    snprintf(tmpfile,256,"temp-%d.rdb", (int) getpid());
+    fp = fopen(tmpfile,"w");
+    if (!fp) {
+        redisLog(REDIS_WARNING, "Failed opening .rdb for saving: %s",
+                 strerror(errno));
+        return REDIS_ERR;
+    }
+
+    // 初始化 I/O
+    rioInitWithFile(&rdb,fp);
+
+    // 设置校验和函数
+    if (server.rdb_checksum)
+        rdb.update_cksum = rioGenericUpdateChecksum;
+
+    // 写入 RDB 版本号
+    snprintf(magic,sizeof(magic),"REDIS%04d",REDIS_RDB_VERSION);
+    if (rdbWriteRaw(&rdb,magic,9) == -1) goto werr;
+
+    // 遍历所有数据库
+    for (j = 0; j < server.dbnum; j++) {
+
+        // 指向数据库
+        redisDb *db = server.db+j;
+
+        // 指向数据库键空间
+        dict *d = db->dict;
+
+        // 跳过空数据库
+        if (dictSize(d) == 0) continue;
+
+        // 创建键空间迭代器
+        di = dictGetSafeIterator(d);
+        if (!di) {
+            fclose(fp);
+            return REDIS_ERR;
+        }
+
+        /* Write the SELECT DB opcode 
+         *
+         * 写入 DB 选择器
+         */
+        if (rdbSaveType(&rdb,REDIS_RDB_OPCODE_SELECTDB) == -1) goto werr;
+        if (rdbSaveLen(&rdb,j) == -1) goto werr;
+
+        /* Iterate this DB writing every entry 
+         *
+         * 遍历数据库，并写入每个键值对的数据
+         */
+        while((de = dictNext(di)) != NULL) {
+            sds keystr = dictGetKey(de);
+            robj key, *o = dictGetVal(de);
+            long long expire;
+
+            // 根据 keystr ，在栈中创建一个 key 对象
+            initStaticStringObject(key,keystr);
+
+            // 获取键的过期时间
+            expire = getExpire(db,&key);
+
+            // 保存键值对数据
+            if (rdbSaveKeyValuePair(&rdb,&key,o,expire,now) == -1) goto werr;
+        }
+        dictReleaseIterator(di);
+    }
+    di = NULL; /* So that we don't release it again on error. */
+
+    /* EOF opcode 
+     *
+     * 写入 EOF 代码
+     */
+    if (rdbSaveType(&rdb,REDIS_RDB_OPCODE_EOF) == -1) goto werr;
+
+    /* CRC64 checksum. It will be zero if checksum computation is disabled, the
+     * loading code skips the check in this case. 
+     *
+     * CRC64 校验和。
+     *
+     * 如果校验和功能已关闭，那么 rdb.cksum 将为 0 ，
+     * 在这种情况下， RDB 载入时会跳过校验和检查。
+     */
+    cksum = rdb.cksum;
+    memrev64ifbe(&cksum);
+    rioWrite(&rdb,&cksum,8);
+
+    /* Make sure data will not remain on the OS's output buffers */
+    // 冲洗缓存，确保数据已写入磁盘
+    if (fflush(fp) == EOF) goto werr;
+    if (fsync(fileno(fp)) == -1) goto werr;
+    if (fclose(fp) == EOF) goto werr;
+
+    /* Use RENAME to make sure the DB file is changed atomically only
+     * if the generate DB file is ok. 
+     *
+     * 使用 RENAME ，原子性地对临时文件进行改名，覆盖原来的 RDB 文件。
+     */
+    if (rename(tmpfile,filename) == -1) {
+        redisLog(REDIS_WARNING,"Error moving temp DB file on the final destination: %s", strerror(errno));
+        unlink(tmpfile);
+        return REDIS_ERR;
+    }
+
+    // 写入完成，打印日志
+    redisLog(REDIS_NOTICE,"DB saved on disk");
+
+    // 清零数据库脏状态
+    server.dirty = 0;
+
+    // 记录最后一次完成 SAVE 的时间
+    server.lastsave = time(NULL);
+
+    // 记录最后一次执行 SAVE 的状态
+    server.lastbgsave_status = REDIS_OK;
+
+    return REDIS_OK;
+
+    werr:
+    // 关闭文件
+    fclose(fp);
+    // 删除文件
+    unlink(tmpfile);
+
+    redisLog(REDIS_WARNING,"Write error saving DB on disk: %s", strerror(errno));
+
+    if (di) dictReleaseIterator(di);
+
+    return REDIS_ERR;
+}
+
+int rdbSaveBackground(char *filename) {
+    pid_t childpid;
+    long long start;
+
+    // 如果 BGSAVE 已经在执行，那么出错
+    if (server.rdb_child_pid != -1) return REDIS_ERR;
+
+    // 记录 BGSAVE 执行前的数据库被修改次数
+    server.dirty_before_bgsave = server.dirty;
+
+    // 最近一次尝试执行 BGSAVE 的时间
+    server.lastbgsave_try = time(NULL);
+
+    // fork() 开始前的时间，记录 fork() 返回耗时用
+    start = ustime();
+
+    if ((childpid = fork()) == 0) {
+        int retval;
+
+        /* Child */
+
+        // 关闭网络连接 fd
+        closeListeningSockets(0);
+
+        // 设置进程的标题，方便识别
+        redisSetProcTitle("redis-rdb-bgsave");
+
+        // 执行保存操作
+        retval = rdbSave(filename);
+
+        // 打印 copy-on-write 时使用的内存数
+        if (retval == REDIS_OK) {
+            size_t private_dirty = zmalloc_get_private_dirty();
+
+            if (private_dirty) {
+                redisLog(REDIS_NOTICE,
+                    "RDB: %zu MB of memory used by copy-on-write",
+                    private_dirty/(1024*1024));
+            }
+        }
+
+        // 向父进程发送信号
+        exitFromChild((retval == REDIS_OK) ? 0 : 1);
+
+    } else {
+
+        /* Parent */
+
+        // 计算 fork() 执行的时间
+        server.stat_fork_time = ustime()-start;
+
+        // 如果 fork() 出错，那么报告错误
+        if (childpid == -1) {
+            server.lastbgsave_status = REDIS_ERR;
+            redisLog(REDIS_WARNING,"Can't save in background: fork: %s",
+                strerror(errno));
+            return REDIS_ERR;
+        }
+
+        // 打印 BGSAVE 开始的日志
+        redisLog(REDIS_NOTICE,"Background saving started by pid %d",childpid);
+
+        // 记录数据库开始 BGSAVE 的时间
+        server.rdb_save_time_start = time(NULL);
+
+        // 记录负责执行 BGSAVE 的子进程 ID
+        server.rdb_child_pid = childpid;
+
+        // 关闭自动 rehash
+        updateDictResizePolicy();
+
+        return REDIS_OK;
+    }
+
+    return REDIS_OK; /* unreached */
+}
+```
+
+
+
+
+
+
+
 
 
 [如何优雅地用Redis实现分布式锁](https://baijiahao.baidu.com/s?id=1623086259657780069&wfr=spider&for=pc)
@@ -1997,4 +2478,10 @@ ZREVRANGE hotvcr:20200919 0 9 withscores
 [bitmap算法和布隆过滤器](https://blog.csdn.net/zk3326312/article/details/79411089)
 
 [详解布隆过滤器的原理，使用场景和注意事项](https://zhuanlan.zhihu.com/p/43263751)
+
+[redis源码中文注释版](https://github.com/huangz1990/redis-3.0-annotated)
+
+[Redis为什么变慢了？一文讲透如何排查Redis性能问题 | 万字长文](https://mp.weixin.qq.com/s?__biz=MzIyOTYxNDI5OA==&mid=2247484679&idx=1&sn=3273e2c9083e8307c87d13a441a267d7&chksm=e8beb2b2dfc93ba4c28c95fdcb62eefc529d6a4ca2b4971ad0493319adbf8348b318224bd3d9&scene=126&sessionid=1620722607&key=ad5be9c1f718c28a9033eeedbbe79fd302cadedabdc13a087e2fb435b239eaefbaee58e884921f26a839421ab1384c69740805d07315fe2dc5a29c7c083070239ce6ed28867256bfa43882988c542345c43ef81dd19f6a51810e5fb976e893f2e6e4ba3fbe126a6df6970baf556d2bdf54061e7951487b904476a6c70ac1ad73&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AdyXaPAP7wvx%2BeRkwIIOVWk%3D&pass_ticket=sI7CTYvq1IlenOAd9YcWpdKNJxp4DyE5Yj6KD%2Bxkxtzu3E7KsMUhwkz9nvSpglFA&wx_header=0)
+
+[Redis最佳实践：7个维度+43条使用规范，带你彻底玩转Redis | 附实践清单](https://mp.weixin.qq.com/s?__biz=MzIyOTYxNDI5OA==&mid=2247484890&idx=1&sn=6f6b550638e14df42646a9119d623bb4&chksm=e8beb26fdfc93b79a77fcafa5f42d5980b7a1230ede1314b9bf895f14fea03351418d58cb56c&scene=126&sessionid=1620722607&key=b7d01f67262b97891b32588f222ec53eaa354c79478c5d634d33702bb769284221df26b7c65cca3bd1772c1b438f008fa464a63bd484f968afd908dc842340789878c62f79ec3dddec9cf83e85a3c42388541e9f4043d359d53bfab6f9230aa0a94b22b08e2c766b47ef728753040e77dac1955dcaa849c6b65480e77fa515a3&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AcqgwCXTCElvW5K5ej8ntEM%3D&pass_ticket=sI7CTYvq1IlenOAd9YcWpdKNJxp4DyE5Yj6KD%2Bxkxtzu3E7KsMUhwkz9nvSpglFA&wx_header=0)
 
