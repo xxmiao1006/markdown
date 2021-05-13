@@ -845,6 +845,52 @@ row 格式的 binlog，最后会有一个 XID event。
 
 
 
+20. 如何使用join
+
+    **原则：小表驱动大表**
+
+Index Nested-Loop Join（NLJ）：能使用被驱动表的索引
+
+Simple Nested-Loop Join： 不能使用被驱动表的索引，全扫（mysql不用）
+
+Block Nested-Loop Join  (BNL): 使用了join_buffer,join_buffer 的大小是由参数 join_buffer_size 设定的，默认值是 256k。如果放不下表 t1 的所有数据话，策略很简单，就是分段放。放不下会导致被驱动表被全表扫描多次
+
+​	   能不能使用 join 语句？
+
+如果可以使用 Index Nested-Loop Join 算法，也就是说可以用上被驱动表上的索引，其实是没问题的；
+
+如果使用 Block Nested-Loop Join 算法，扫描行数就会过多。尤其是在大表上的 join 操作，这样可能要扫描被驱动表很多次，会占用大量的系统资源。所以这种 join 尽量不要用。
+
+所以你在判断要不要使用 join 语句时，就是看 explain 结果里面，Extra 字段里面有没有出现“Block Nested Loop”字样。
+
+​		驱动表分段很容易导致innodb的buffer poor将热数据移除加载冷数据，导致Buffer pool hit rate命中率极低，其他请求需要读磁盘，因此系统响应变慢，大部分请求阻塞。
+
+​		还会出现：1. 长期占用DML锁，引发DDL拿不到锁堵慢连接池； 2. SQL执行socket_timeout超时后业务接口重复发起，导致实例IO负载上升出现雪崩；3. 实例异常后，DBA kill SQL因繁杂的回滚执行时间过长，不能快速恢复可用；4. 如果业务采用select *作为结果集返回，极大可能出现网络拥堵，整体拖慢服务端的处理；5. 冷数据污染buffer pool，block nested-loop多次扫描，其中间隔很有可能超过1s，从而污染到lru 头部，影响整体的查询体验。
+
+​		**join语句优化**
+
+​		**Multi-Range Read 优化 (MRR)。这个优化的主要目的是尽量使用顺序读盘。**
+
+​		之前我们提到的回表操作，在非主键索引上，叶节点存储的是主键的id，这个时候要回主键索引一行行查找数据，这个时候其实会造成磁盘的随机读，因为主键索引查出来的时候不一定是有序的，我们无法优化一行行查找这个行为，但是可以通过其他手段将随机读改为顺序读。
+
+​		因为大多数的数据都是按照主键递增顺序插入得到的，所以我们可以认为，如果按照主键的递增顺序查询的话，对磁盘的读比较接近顺序读，能够提升读性能。
+
+这，就是 MRR 优化的设计思路。此时，语句的执行流程变成了这样：
+
+* 根据索引 a，定位到满足条件的记录，将 id 值放入 read_rnd_buffer 中 ;
+
+* 将 read_rnd_buffer 中的 id 进行递增排序；
+
+* 排序后的 id 数组，依次到主键 id 索引中查记录，并作为结果返回。
+
+这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）
+
+MRR 能够提升性能的核心在于，这条查询语句在索引 a 上做的是一个范围查询（也就是说，这是一个多值查询），可以得到足够多的主键 id。这样通过排序以后，再去主键索引查数据，才能体现出“顺序性”的优势。
+
+
+
+
+
 
 
 
@@ -1134,3 +1180,4 @@ show variables like 'innodb_buffer_pool%';
 
 [何登成的《MySQL 加锁处理分析》](https://github.com/hedengcheng/tech)
 
+[MySQL8.0 新特性 Hash Join](https://www.cnblogs.com/cchust/p/11961851.html)
