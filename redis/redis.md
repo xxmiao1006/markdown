@@ -2487,3 +2487,5 @@ int rdbSaveBackground(char *filename) {
 
 [Redis最佳实践：7个维度+43条使用规范，带你彻底玩转Redis | 附实践清单](https://mp.weixin.qq.com/s?__biz=MzIyOTYxNDI5OA==&mid=2247484890&idx=1&sn=6f6b550638e14df42646a9119d623bb4&chksm=e8beb26fdfc93b79a77fcafa5f42d5980b7a1230ede1314b9bf895f14fea03351418d58cb56c&scene=126&sessionid=1620722607&key=b7d01f67262b97891b32588f222ec53eaa354c79478c5d634d33702bb769284221df26b7c65cca3bd1772c1b438f008fa464a63bd484f968afd908dc842340789878c62f79ec3dddec9cf83e85a3c42388541e9f4043d359d53bfab6f9230aa0a94b22b08e2c766b47ef728753040e77dac1955dcaa849c6b65480e77fa515a3&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AcqgwCXTCElvW5K5ej8ntEM%3D&pass_ticket=sI7CTYvq1IlenOAd9YcWpdKNJxp4DyE5Yj6KD%2Bxkxtzu3E7KsMUhwkz9nvSpglFA&wx_header=0)
 
+[Redis 6.X Cluster 集群搭建](https://mp.weixin.qq.com/s?__biz=MzU3NDkwMjAyOQ==&mid=2247486674&idx=1&sn=f265262eb90c312ddaf6b8ddfcbfa646&scene=21#wechat_redirect)
+

@@ -226,7 +226,7 @@ typedef struct dictEntry {
 
 
 
-#### 4.跳跃表
+#### 4. 跳跃表
 
 ​		Redis使用跳跃表作为有序集合键的底层实现之一，如果一个有序集合包含的元素较多，又或者有序集合中的元素成员是比较长的字符串时，Redis就会使用跳跃表来作为有序集合键的底层实现。Redis只在两个地方用到了跳跃表，一个是实现有序集合键，还有一个是在集群节点中用作内部数据结构。
 
@@ -281,13 +281,270 @@ typedef struct zskiplistNode {
 
 
 
-​	
+#### 5. 整数集合	
 
-​		
+​		整数集合(intset)是集合键的底层实现之一，当一个集合中只包含证书键，并且这个集合的元素不多时，Redis就会使用整数集合作为集合键的底层实现。
+
+​		每个`intset.h/intset`结构表示一个整数集合
+
+```c
+typedef struct intset {
+    
+    // 编码方式
+    //INTSET_ENC_INT16、INTSET_ENC_INT32、INTSET_ENC_INT64
+    uint32_t encoding;
+
+    // 集合包含的元素数量
+    uint32_t length;
+
+    // 保存元素的数组
+    int8_t contents[];
+
+} intset;
+```
+
+​		Contents是整数集合的底层实现: 整数集合的每个元素都是contents数组的一个数组项(item)，各个项在数组中按值得大小从小到大有序排列，并且数组中不包含重复项。length记录了整数集合包含的元素数量，也即是contents数组的长度。contents数组真正的类型取决于encoding属性的值。
+
+​		整数集合的升级：每当我们要将一个新元素添加到整数集合里面去时，并且新元素的类型比整数集合现有所有元素的类型都要长时，整数集合需要先进行升级(upgrade)，然后才能将新元素添加到整数集合里面。
+
+​		升级步骤: 
+
+* 根据新元素的类型，扩展整数集合底层数组的大小，并为新元素分配空间。
+
+* 将底层所有现有的元素，转换为和新元素类型相同的类型，并将类型转换后的元素放置到正确的位置上，而且在放置元素的过程中，需要维持底层数组有序的性质不变。
+
+* 将新元素添加到底层数组。
+
+  **升级的好处：提示灵活性、节约内存。注意整数集合不支持降级**
 
 
 
-### 二. redis数据库
+#### 6. 压缩列表
+
+​		压缩列表(ziplist)是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
+
+​		压缩列表是Redis为了节约内存开发的，是由一系列特殊编码的连续内存块组成的顺序型(sequential)数据结构。一个压缩列表可以包含任意多个节点(entry)，每个节点可以保存一个字节数组或者一个整数值。
+
+```c
+/*
+ * 保存 ziplist 节点信息的结构
+ */
+typedef struct zlentry {
+
+    // prevrawlen ：前置节点的长度
+    // prevrawlensize ：编码 prevrawlen 所需的字节大小
+    unsigned int prevrawlensize, prevrawlen;
+
+    // len ：当前节点值的长度
+    // lensize ：编码 len 所需的字节大小
+    unsigned int lensize, len;
+
+    // 当前节点 header 的大小
+    // 等于 prevrawlensize + lensize
+    unsigned int headersize;
+
+    // 当前节点值所使用的编码类型
+    unsigned char encoding;
+
+    // 指向当前节点的指针
+    unsigned char *p;
+
+} zlentry;
+
+```
+
+
+
+### 二. 对象
+
+​		前面我们介绍了Redis实现的一些底层数据结构，但是Redis并没有直接用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统。这个系统包含**字符串对象、列表对象、哈希对象、集合对象、有序集合对象这五种类型的对象**，每种对象都用到了至少一种我们前面所介绍的数据结构。
+
+​		Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。Redis中的每一个对象都由一个redisObject结构表示，该结构中和保存数据有关的由三个属性，分别时type属性、encoding属性、ptr属性:
+
+```c
+/* Object types */
+// 对象类型
+#define REDIS_STRING 0  //TYPE命令输出  string
+#define REDIS_LIST 1	//TYPE命令输出  list
+#define REDIS_SET 2		//TYPE命令输出  set
+#define REDIS_ZSET 3	//TYPE命令输出  zset
+#define REDIS_HASH 4	//TYPE命令输出  hash
+
+/* Objects encoding. Some kind of objects like Strings and Hashes can be
+ * internally represented in multiple ways. The 'encoding' field of the object
+ * is set to one of this fields for this object. */
+// 对象编码
+#define REDIS_ENCODING_RAW 0     /* Raw representation */ //OBJECT ENCODING命令输出  raw
+#define REDIS_ENCODING_INT 1     /* Encoded as integer */  //OBJECT ENCODING命令输出  int
+#define REDIS_ENCODING_HT 2      /* Encoded as hash table */  //OBJECT ENCODING命令输出  hashtable
+#define REDIS_ENCODING_ZIPMAP 3  /* Encoded as zipmap */  //OBJECT ENCODING命令输出  --
+#define REDIS_ENCODING_LINKEDLIST 4 /* Encoded as regular linked list */  //OBJECT ENCODING命令输出  linkedlist
+#define REDIS_ENCODING_ZIPLIST 5 /* Encoded as ziplist */  //OBJECT ENCODING命令输出  ziplist
+#define REDIS_ENCODING_INTSET 6  /* Encoded as intset */  //OBJECT ENCODING命令输出  intset
+#define REDIS_ENCODING_SKIPLIST 7  /* Encoded as skiplist */  //OBJECT ENCODING命令输出  skiplist
+#define REDIS_ENCODING_EMBSTR 8  /* Embedded sds string encoding */  //OBJECT ENCODING命令输出  embstr
+
+
+/* A redis object, that is a type able to hold a string / list / set */
+
+/* The actual Redis Object */
+/*
+ * Redis 对象
+ */
+#define REDIS_LRU_BITS 24
+#define REDIS_LRU_CLOCK_MAX ((1<<REDIS_LRU_BITS)-1) /* Max value of obj->lru */
+#define REDIS_LRU_CLOCK_RESOLUTION 1000 /* LRU clock resolution in ms */
+typedef struct redisObject {
+
+    // 类型
+    unsigned type:4;
+
+    // 编码
+    unsigned encoding:4;
+
+    // 对象最后一次被访问的时间
+    unsigned lru:REDIS_LRU_BITS; /* lru time (relative to server.lruclock) */
+
+    // 引用计数
+    int refcount;
+
+    // 指向实际值的指针
+    void *ptr;
+
+} robj;
+```
+
+​		使用type命令可以查看当前键值对的值类型: TYPE key
+
+​		使用object encoding命令可以查看一个数据库键的值对象编码：OBJECT ENCODING key
+
+​		不同类型编码对应的对象：
+
+| 类型         | 编码                      | 对象                                           |
+| ------------ | ------------------------- | ---------------------------------------------- |
+| REDIS_STRING | REDIS_ENCODING_INT        | 使用整数值实现的字符串对象                     |
+| REDIS_STRING | REDIS_ENCODING_EMBSTR     | 使用embstr编码的简单动态字符串实现的字符串对象 |
+| REDIS_STRING | REDIS_ENCODING_RAW        | 使用简单动态字符串实现的字符串对象             |
+| REDIS_LIST   | REDIS_ENCODING_ZIPLIST    | 使用压缩列表实现的列表对象                     |
+| REDIS_LIST   | REDIS_ENCODING_LINKEDLIST | 使用双端列表实现的列表对象                     |
+| REDIS_HASH   | REDIS_ENCODING_ZIPLIST    | 使用压缩列表实现的哈希对象                     |
+| REDIS_HASH   | REDIS_ENCODING_HT         | 使用字典实现的哈希对象                         |
+| REDIS_SET    | REDIS_ENCODING_INTSET     | 使用整数集合实现的集合对象                     |
+| REDIS_SET    | REDIS_ENCODING_HT         | 使用字典实现的集合对象                         |
+| REDIS_ZSET   | REDIS_ENCODING_ZIPLIST    | 使用压缩列表实现的有序集合对象                 |
+| REDIS_ZSET   | REDIS_ENCODING_SKIPLIST   | 使用跳表实现的有序集合对象                     |
+
+​		通过encoding属性来设置对象的编码，而不是为特定类型的对象关联一种固定的编码，极大的提升了Redis的灵活性和效率。可以根据不同的使用场景来为一个对象设置不同的编码，从而优化对象在某一场景下的效率.
+
+#### 1. 字符串对象
+
+​		字符串对象的编码可以是`int`,`raw`,或者`embstr`
+
+* 如果一个字符串对象保存的是整数值，并且这个整数值可以用long类型来表示，那么字符串对象的编码会设置为`int`；
+
+* 如果一个字符串对象保存的是一个字符串值，并且这个字符串值的长度大于32字节，那么字符串对象会使用SDS来保存这个字符串，并将对象的编码设置为`raw`；
+
+* 如果一个字符串对象保存的是一个字符串值，并且这个字符串值得长度小于32字节，那么字符串对象会使用`embstr`编码的方式来保存这个字符串的值。
+
+​		embstr编码是专门用于保存短字符串的一种编码，它的底层实现和`raw`一样，都是使用redisObject结构和sdshdr结构来表示字符串对象，但不一样的是row编码会调用两次内存分配函数来分别创建redisObject和sdshdr结构，而embstr编码则通过调用一次内存分配函数来分配一块连续的空间，空间中依次包含redisObject和sdshdr两个结构（内存释放的时候同样如此）。还有要注意的是，**给embstr编码的字符串作修改操作时，会转变成`raw`编码，相当于embstr编码是只读的，因为Redis没有为embstr编码的字符串对象编写任何相应的修改程序**
+
+​		同样，如果我们对int编码的字符串对象执行一些修改使得这个对象保存的不再是long类型的值，也会转为`raw`编码。
+
+
+
+#### 2. 列表对象
+
+​		列表对象的编码可以是`ziplist`或者`linkedlist`
+
+​		当列表对象同时满足以下两个条件时，列表对象使用`ziplist`编码：
+
+* 列表对象保存的所有字符串元素的长度都小于64字节
+* 列表对象保存的元素数量小于512个；
+
+​		不能满足这两个条件的列表对象需要使用`linkedlist`编码
+
+​		这两个条件的值可以修改的，配置文件中`list-max-ziplist-value`和`list-max-ziplist-entries`选项
+
+
+
+#### 3. 哈希对象
+
+​		哈希对象的编码可以是`ziplist`,`hashtable`
+
+​		当哈希对象同时满足以下两个条件时，哈希对象使用`ziplist`编码
+
+- 哈希对象保存的所有键值对的键和值的字符串的长度都小于64字节
+- 哈希对象保存的元素数量小于512个；
+
+​		不能满足这两个条件的列表对象需要使用`hashtable`编码
+
+​		这两个条件的值可以修改的，配置文件中`hash-max-ziplist-value`和`hash-max-ziplist-entries`选项
+
+
+
+#### 4. 集合对象
+
+​		集合对象的编码可以是`intset`,`hashtable`
+
+​		当哈集合对象同时满足以下两个条件时，集合对象使用`intset`编码
+
+* 集合对象保存的所有元素都是整数值
+
+* 集合对象保存的元素数量不超过512个
+
+  不能满足这两个条件的列表对象需要使用`hashtable`编码
+
+  这个条件的值可以修改的，配置文件中`set-max-intset-entries`选项
+
+
+
+#### 5. 有序集合对象
+
+​		有序集合的编码可以是`ziplist`,`skiplist`
+
+​		`skiplist`编码的有序集合对象使用zset结构作为底层实现，一个zset同时包含一个字典和一个跳跃表
+
+```c
+/*
+ * 有序集合
+ */
+typedef struct zset {
+
+    // 字典，键为成员，值为分值
+    // 用于支持 O(1) 复杂度的按成员取分值操作
+    dict *dict;
+
+    // 跳跃表，按分值排序成员
+    // 用于支持平均复杂度为 O(log N) 的按分值定位成员操作
+    // 以及范围操作
+    zskiplist *zsl;
+
+} zset;
+```
+
+​		zset结构中的跳跃表按分支从小到大保存了所有集合元素，每个跳跃表节点都保存了一个集合元素：跳跃表节点的object属性保存了元素的成员，而跳跃表节点的score属性则保存了元素的分值。通过这个跳跃表，程序可以对有序集合进行范围型操作，比如ZRANK,ZRANGE等命令就是基于跳跃表API实现的。
+
+​		初次之外，zset结构中的dict字典为有序集合创建了一个从成员到分值的映射，字典中的每一个键值对都保存了一个集合元素：字典的键保存了元素的成员，而字典的值则保存了元素的分值。通过这个字典，程序可以用0(1)复杂度查找给定成员的分值，ZSCORE命令就是根据这一特性实现的，而很多其他有序集合命令都在实现的内部用到了这一特性。
+
+​		值得一提的是，虽然zset结构同时使用跳跃表和字典来保存有序集合元素，但这两种数据结构都会通过指针来共享相同的成员和分值，所以同时使用跳跃表和字典来保存集合元素不会产生任何重复的成员或者分值，也不会因此浪费额外的内存。
+
+​		实际上这个单独一种字典或者跳表都可以实现zset,为什么zset需要同时使用跳跃表和字典来实现？因为无论单独使用哪一种数据结构，性能都没有同时使用这两种好，字典可以让我们用0(1)复杂度查找给定成员的分值，而跳表用来执行有序范围性操作。
+
+​		编码的转换：
+
+​		当有序集合对象同时满足以下两个条件时，对象使用ziplist编码
+
+* 有序集合保存的数量小于128个
+
+* 有序集合保存的所有元素成员的长度都小于64字节。
+
+  不能同时满足以上条件的有序集合对象将使用`skiplist`编码
+
+
+
+
+
+### 三. redis数据库
 
 #### 		1. 数据库键空间
 
