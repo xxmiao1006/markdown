@@ -595,7 +595,11 @@ SHOW PROFILES;
 
 ​		innodb主键索引为聚簇索引，叶子节点存储了完整的记录信息，而其他辅助索引（二级索引）叶子节点存储的指针，所以通过辅助索引查找数据只能查到id和索引列，如果还需要查找其他没有的字段需要通过主键回到主键索引再查询一次，这称之为回表操作（非常慢，需要扫描两遍索引树）。可以通过使用覆盖索引来优化辅助索引的回表操作，意思就是查询的字段通过辅助索引树就可以直接查出来，不需要通过回表操作查询其他字段的信息。
 
+​		补充：如果无法使用覆盖索引优化回表操作，还有什么办法可以优化回表?
 
+​					ICP：索引下推，通过索引下推来减少回表的次数
+
+​					MRR：回表操作时通过id回表，但是id不一定是有序的，可能产生随机读，可以先将id排序，在回表查询，一般我们可以认为，如果按照主键的递增顺序查询的话，对磁盘的读比较接近顺序读
 
 
 
@@ -642,6 +646,10 @@ SHOW PROFILES;
 
 索引下推把查询未用到的索引，传输给engine层，可以过滤掉部分数据，减少回表的操作（说明用在二级索引，主键索引中不存在ICP）。[MySQL ICP（Index Condition Pushdown）特性](https://www.cnblogs.com/Terry-Wu/p/9273177.html)
 
+```sql
+set optimizer_switch='index_condition_pushdown=on/off';
+```
+
 ICP的使用限制
 
 1. 当sql需要全表访问时，ICP的优化策略可用于range, ref, eq_ref, ref_or_null类型的访问数据方法 。
@@ -674,7 +682,7 @@ ICP的使用限制
 
  步骤3，涉及 随机 写磁盘IO；
 
- Change buffer机制，优化了步骤1——避免了随机读磁盘IO 
+ Change buffer机制，**缓存二级索引(非唯一)上的更新操作**。优化了步骤1——避免了随机读磁盘IO 
 
 Redo log机制， 优化了步骤3——避免了随机写磁盘IO，将随机写磁盘，优化为了顺序写磁盘(写redo log，确保crash-safe) 
 
@@ -885,9 +893,11 @@ Block Nested-Loop Join  (BNL): 使用了join_buffer,join_buffer 的大小是由�
 
 这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）
 
+```sql
+set optimizer_switch="mrr_cost_based=on/off"
+```
+
 MRR 能够提升性能的核心在于，这条查询语句在索引 a 上做的是一个范围查询（也就是说，这是一个多值查询），可以得到足够多的主键 id。这样通过排序以后，再去主键索引查数据，才能体现出“顺序性”的优势。
-
-
 
 
 
