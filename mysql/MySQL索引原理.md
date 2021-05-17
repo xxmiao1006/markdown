@@ -901,6 +901,14 @@ MRR 能够提升性能的核心在于，这条查询语句在索引 a 上做的�
 
 
 
+​		**BKA(Batched Key Access)算法优化**,如果要使用 BKA 优化算法的话，你需要在执行 SQL 语句之前，先设置
+
+```sql
+set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
+```
+
+
+
 
 
 
