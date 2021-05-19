@@ -746,17 +746,186 @@ reidsDb的数据结构的expires字典保存了数据库键的所有过期时间
 
 
 
+### 五. Redis客户端
+
+​		每个与Redis服务器建立了连接的客户端，服务器都为这些客户端建立了相应的`redis.h/redisClient`结构，这个结构保存了客户端当前的信息，以及执行相关功能时所需要用到的数据结构。
+
+​		可以使用`client list`命令列出目前服务器所有连接的客户端
+
+```c
+/* With multiplexing we need to take per-client state.
+ * Clients are taken in a liked list.
+ *
+ * 因为 I/O 复用的缘故，需要为每个客户端维持一个状态。
+ *
+ * 多个客户端状态被服务器用链表连接起来。
+ */
+typedef struct redisClient {
+
+    // 套接字描述符
+    //伪客户端为-1，代表不进行套接字连接的客户端，目前载入AOF文件或者执行LUA脚本中的Redis命令用到
+    //普通客户端为大于-1的整数
+    int fd;
+
+    // 当前正在使用的数据库
+    redisDb *db;
+
+    // 当前正在使用的数据库的 id （号码）
+    int dictid;
+
+    // 客户端的名字
+    robj *name;             /* As set by CLIENT SETNAME */
+
+    // 查询缓冲区  用于保存客户端发送的命令请求。
+    sds querybuf;
+
+    // 查询缓冲区长度峰值
+    size_t querybuf_peak;   /* Recent (100ms or more) peak of querybuf size */
+
+    // 参数数量  将命令保存到querybuf后会对命令进行解析，并且将命令的参数和参数个数保存下来
+    int argc;
+
+    // 参数对象数组
+    robj **argv;
+
+    // 记录被客户端执行的命令？  命令表? 根据解析出来的argv[0]查找对应的命令实现函数？
+    struct redisCommand *cmd, *lastcmd;
+
+    // 请求的类型：内联命令还是多条命令
+    int reqtype;
+
+    // 剩余未读取的命令内容数量
+    int multibulklen;       /* number of multi bulk arguments left to read */
+
+    // 命令内容的长度
+    long bulklen;           /* length of bulk argument in multi bulk request */
+
+    // 回复链表  当char buf[REDIS_REPLY_CHUNK_BYTES]固定缓冲区已经用完服务器就会开始使用可变大小缓冲区reply
+    list *reply;
+
+    // 回复链表中对象的总大小
+    unsigned long reply_bytes; /* Tot bytes of objects in reply list */
+
+    // 已发送字节，处理 short write 用
+    int sentlen;            /* Amount of bytes already sent in the current
+                               buffer or object being sent. */
+
+    // 创建客户端的时间
+    time_t ctime;           /* Client creation time */
+
+    // 客户端最后一次和服务器互动的时间
+    time_t lastinteraction; /* time of the last interaction, used for timeout */
+
+    // 客户端的输出缓冲区超过软性限制的时间
+    time_t obuf_soft_limit_reached_time;
+
+    // 客户端状态标志
+    int flags;              /* REDIS_SLAVE | REDIS_MONITOR | REDIS_MULTI ... */
+
+    // 当 server.requirepass 不为 NULL 时
+    // 代表认证的状态
+    // 0 代表未认证， 1 代表已认证
+    int authenticated;      /* when requirepass is non-NULL */
+
+    // 复制状态
+    int replstate;          /* replication state if this is a slave */
+    // 用于保存主服务器传来的 RDB 文件的文件描述符
+    int repldbfd;           /* replication DB file descriptor */
+
+    // 读取主服务器传来的 RDB 文件的偏移量
+    off_t repldboff;        /* replication DB file offset */
+    // 主服务器传来的 RDB 文件的大小
+    off_t repldbsize;       /* replication DB file size */
+    
+    sds replpreamble;       /* replication DB preamble. */
+
+    // 主服务器的复制偏移量
+    long long reploff;      /* replication offset if this is our master */
+    // 从服务器最后一次发送 REPLCONF ACK 时的偏移量
+    long long repl_ack_off; /* replication ack offset, if this is a slave */
+    // 从服务器最后一次发送 REPLCONF ACK 的时间
+    long long repl_ack_time;/* replication ack time, if this is a slave */
+    // 主服务器的 master run ID
+    // 保存在客户端，用于执行部分重同步
+    char replrunid[REDIS_RUN_ID_SIZE+1]; /* master run id if this is a master */
+    // 从服务器的监听端口号
+    int slave_listening_port; /* As configured with: SLAVECONF listening-port */
+
+    // 事务状态
+    multiState mstate;      /* MULTI/EXEC state */
+
+    // 阻塞类型
+    int btype;              /* Type of blocking op if REDIS_BLOCKED. */
+    // 阻塞状态
+    blockingState bpop;     /* blocking state */
+
+    // 最后被写入的全局复制偏移量
+    long long woff;         /* Last write global replication offset. */
+
+    // 被监视的键
+    list *watched_keys;     /* Keys WATCHED for MULTI/EXEC CAS */
+
+    // 这个字典记录了客户端所有订阅的频道
+    // 键为频道名字，值为 NULL
+    // 也即是，一个频道的集合
+    dict *pubsub_channels;  /* channels a client is interested in (SUBSCRIBE) */
+
+    // 链表，包含多个 pubsubPattern 结构
+    // 记录了所有订阅频道的客户端的信息
+    // 新 pubsubPattern 结构总是被添加到表尾
+    list *pubsub_patterns;  /* patterns a client is interested in (SUBSCRIBE) */
+    sds peerid;             /* Cached peer ID. */
+
+    /* Response buffer */
+    // 回复偏移量
+    int bufpos;
+    // 回复缓冲区 REDIS_REPLY_CHUNK_BYTES  16*1024  16KB
+    char buf[REDIS_REPLY_CHUNK_BYTES];
+
+} redisClient;
+```
 
 
 
+#### 1. 客户端被关闭的原因
+
+* 客户端进程退出或者被杀死
+
+* 客户端向服务器发送了带有不符合协议格式的命令请求，那么这个客户端也会被服务器关闭
+
+* 如果客户端成为了CLIENT KILL命令的目标，那么它也会被关闭
+
+* 如果用户为服务器设置了timeout配置选项，那么当客户端的空转时间超过了timeout选项配置的值的话，客户端将被关闭。特殊情况除外（客户端是主服务器，从服务器正在被BLPOP命令阻塞，或者正在执行  SUBSCRIBE、PSUBSCRIBE等订阅命令）
+
+* 客户端发送的命令大小超出了出入缓冲区的大小限制（1GB）
+
+* 要发回给客户端命令的回复的大小超出了输出缓冲区的限制大小。（虽然回复过大会使用可变大小缓冲区，但为了避免回复过大占用服务器资源，服务器会时刻检查并执行限制操作）
+
+  * 硬性限制：超过了硬性限制所设置的大小，服务器立即关闭客户端
+
+  * 软性限制：超过了软性限制的大小但是没有超过硬性限制的大小，服务端会使用redisClient结构的obuf_soft_limit_reached_time来记录时间，如果输出缓冲区一直超过软性限制，并且持续时间超过服务器设定的时长，那么服务器将关闭客户端；如果在规定时间内不再超出限制，客户端不会被关闭，并且obuf_soft_limit_reached_time清零。使用`client-output-buffer-limit`选项可以为普通客户端、从服务器客户端执行发布与订阅功能的客户端分别设置不同的软性限制和硬性限制。该选项格式为：
+
+    `client-output-buffer-limit <class> <hard limit><soft limit><soft seconds>`
+
+    设置示例
+
+    `client-output-buffer-limit normal 0 0 0`
+
+    `client-output-buffer-limit slave 256mb 64mb 60`
+
+    `client-output-buffer-limit pubsub 32mb 8mb 60`
 
 
 
+#### 2. 执行LUA脚本的伪客户端
 
+​		服务器会在初始化的时候创建负责执行Lua脚本中包含Redis命令的伪客户端，并将这个伪客户端关联在服务器状态结构的lua_client属性中。
 
+​		lua_client伪客户端在服务器运行的整个生命周期中会一直存在，只有服务器关闭，客户端才会被关闭
 
+#### 3. 载入AOF文件的伪客户端
 
-
+​		服务器在载入AOF文件时，会创建用于执行AOF文件包含的Redis命令的伪客户端，并在载入完成后，关闭这个伪客户端。
 
 
 
