@@ -909,7 +909,30 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 
 
+21.MySQL 什么时候会使用内部临时表？
 
+* 如果语句执行过程可以一边读数据，一边直接得到结果，是不需要额外内存的，否则就需要额外的内存，来保存中间结果；
+
+* join_buffer 是无序数组，sort_buffer 是有序数组，临时表是二维表结构；
+
+* 如果执行逻辑需要用到二维表特性，就会优先考虑使用临时表。比如我们的例子中，union 需要用到唯一索引约束， group by 还需要用到另外一个字段来存累积计数。
+
+group by 的几种实现算法，从中可以总结一些使用的指导原则：
+
+* 如果对 group by 语句的结果没有排序要求，要在语句后面加 order by null；
+
+* 尽量让 group by 过程用上表的索引，确认方法是 explain 结果里没有 Using temporary 和 Using filesort；
+
+* 如果 group by 需要统计的数据量不大，尽量只使用内存临时表；
+
+* 也可以通过适当调大 tmp_table_size 参数，来避免用到磁盘临时表；如果数据量实在太大，使用 SQL_BIG_RESULT 这个提示，来告诉优化器直接使用排序算法得到 group by 的结果。
+
+
+
+22.在什么场景下自增主键可能不连续？
+1：唯一键冲突
+2：事务回滚
+3：自增主键的批量申请
 
 
 
@@ -1175,6 +1198,8 @@ show variables like 'innodb_buffer_pool%';
 
 
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
+
+[一张图彻底搞懂MySQL的 explain](https://segmentfault.com/a/1190000021458117)
 
 [MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
 
