@@ -936,6 +936,18 @@ group by 的几种实现算法，从中可以总结一些使用的指导原则�
 
 
 
+23.mysql 权限
+
+![mysql权限](http://ww1.sinaimg.cn/large/d1885ed1ly1g0ab2twmjaj21gs0js78u.jpg)
+
+
+
+
+
+
+
+
+
 
 
 
