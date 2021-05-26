@@ -446,6 +446,45 @@ jstack 28223 | grep -A30 6e48
 
 -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC
 
+
+
+​		使用 Direct Buffer，我们需要清楚它对内存和 JVM 参数的影响。首先，因为它不在堆上，所以 Xmx 之类参数，其实并不能影响 Direct Buffer 等堆外成员所使用的内存额度，我们可以使用下面参数设置大小：
+
+```bash
+-XX:MaxDirectMemorySize=512M
+```
+
+​		从参数设置和内存问题排查角度来看，这意味着我们在计算 Java 可以使用的内存大小的时候，不能只考虑堆的需要，还有 Direct Buffer 等一系列堆外因素。如果出现内存不足，堆外内存占用也是一种可能性。另外，大多数垃圾收集过程中，都不会主动收集 Direct Buffer，它的垃圾收集过程，就是基于我在专栏前面所介绍的 Cleaner（一个内部实现）和幻象引用（PhantomReference）机制，其本身不是 public 类型，内部实现了一个 Deallocator 负责销毁的逻辑。对它的销毁往往要拖到 full GC 的时候，所以使用不当很容易导致 OutOfMemoryError。
+
+​		因为通常的垃圾收集日志等记录，并不包含 Direct Buffer 等信息，所以 Direct Buffer 内存诊断也是个比较头疼的事情。幸好，在 JDK 8 之后的版本，我们可以方便地使用 Native Memory Tracking（NMT）特性来进行诊断，你可以在程序启动时加上下面参数：
+
+```bash
+-XX:NativeMemoryTracking={summary|detail}
+```
+
+注意，激活 NMT 通常都会导致 JVM 出现 5%~10% 的性能下降，请谨慎考虑。
+
+​		运行时，可以采用下面命令进行交互式对比：
+
+```bash
+// 打印NMT信息
+jcmd <pid> VM.native_memory detail 
+
+// 进行baseline，以对比分配内存变化
+jcmd <pid> VM.native_memory baseline
+
+// 进行baseline，以对比分配内存变化
+jcmd <pid> VM.native_memory detail.diff
+```
+
+
+
+
+
+
+
+
+
 [深度揭秘垃圾回收底层，这次让你彻底弄懂她](https://my.oschina.net/u/3944379/blog/4722027)
 
 [jvm G1 深度分析](https://blog.csdn.net/u013380694/article/details/83341913)
@@ -473,4 +512,8 @@ jstack 28223 | grep -A30 6e48
 * 大对象直接进入老年代
 * 长期存活的对象进入老年代（被移到survivor空间中，年龄为1，之后每熬过一次MinorGC,年龄加一，当年龄达到一定程度默认15岁时会被晋升到老年代）
 * 动态年龄判断（在survivor空间中相同年所有对象的大小总和大于survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，无需等到MaxTenuringThreshold中要求的年龄）。
+
+
+
+
 
