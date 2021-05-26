@@ -2489,3 +2489,4 @@ int rdbSaveBackground(char *filename) {
 
 [Redis 6.X Cluster 集群搭建](https://mp.weixin.qq.com/s?__biz=MzU3NDkwMjAyOQ==&mid=2247486674&idx=1&sn=f265262eb90c312ddaf6b8ddfcbfa646&scene=21#wechat_redirect)
 
+[为什么Redis集群有16384个槽](https://www.cnblogs.com/rjzheng/p/11430592.html)
