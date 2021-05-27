@@ -340,3 +340,5 @@ public class InsertData {
 [关于 Synchronized 的一个点，网上99%的文章都错了](https://mp.weixin.qq.com/s/3PBGQBR9DNphE7jSMvOHXQ)
 
 [面试官：说一下Synchronized底层实现，锁升级的具体过程？](https://blog.csdn.net/zzti_erlie/article/details/103997713)
+
+[一文看懂java的锁机制](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247506603&idx=2&sn=0f4e992225efce985964d3db8a40663f&chksm=ebd5e587dca26c91354e973fe02cf5b046fc5355b5ce836273eeee7da2a8be98a295b6cbce96&mpshare=1&scene=24&srcid=0507l5Z8nENWvtb5xuzKbCr2&sharer_sharetime=1620359679805&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)

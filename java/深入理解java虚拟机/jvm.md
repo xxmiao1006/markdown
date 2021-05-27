@@ -310,7 +310,7 @@ GCT：从应用程序启动到采样时gc用的总时间(s)
 [jvm 性能调优工具之 jstat](https://www.jianshu.com/p/213710fb9e40)
 
 ```bash
-#这个命令可以查看 Metaspace 加载的到底是哪些类
+#这个命令可以查看 Metaspace 加载的到底是哪些类   需启用参数 -XX:+UnlockDiagnosticVMOptions
 jcmd pid GC.class_stats
 
 jcmd pid GC.class_stats |awk '{print $13}'| sort | uniq -c |sort -r| head
@@ -479,6 +479,19 @@ jcmd <pid> VM.native_memory detail.diff
 
 
 
+mataSapce内存溢出基本都是加载类异常
+
+-XX:+TraceClassLoading
+
+-XX:+TraceClassUnloading
+
+从gc日志能够看出来，导致该full gc的原因是达到了metaspace的gc阈值，这里先解释下`Metadata GC Threshold`和`Last ditch collection`：
+
+-  `Metadata GC Threshold`：metaspace空间不能满足分配时触发，这个阶段不会清理软引用；
+-  `Last ditch collection`：经过`Metadata GC Threshold`触发的full gc后还是不能满足条件，这个时候会触发再一次的gc cause为`Last ditch collection`的full gc，这次full gc会清理掉软引用。
+
+`XX:+HeapDumpBeforeFullGC`、`-XX:+HeapDumpAfterFullGC`分别在发生full gc前后做heap dump
+
 
 
 
@@ -506,6 +519,20 @@ jcmd <pid> VM.native_memory detail.diff
 [HotSpot VM G1 垃圾回收的survivor 0区貌似永远是0](https://hllvm-group.iteye.com/group/topic/42352)
 
 [Java中9种常见的CMS GC问题分析与解决](https://tech.meituan.com/2020/11/12/java-9-cms-gc.html)
+
+[一次jvm调优实战](https://mp.weixin.qq.com/s?__biz=MzU2NjIzNDk5NQ==&mid=2247496741&idx=1&sn=1fa0f6cd5802563b203af5926890b06e&chksm=fcad2e39cbdaa72fbedf531ad54ea6b0aaae1f7fc8ed1d90667547f14556ce5af72c79e4ade6&scene=132#wechat_redirect)
+
+[JVM Metaspace内存溢出排查与总结](https://www.cnblogs.com/maoyx/p/13934732.html)
+
+[大量类加载器创建导致诡异FullGC](https://zhuanlan.zhihu.com/p/186226342)
+
+[记录一次线上GC问题/cms参数](https://blog.csdn.net/qq_35211818/article/details/104182847)
+
+[java反射导致的fullgc  碰到过，mybatis](https://blog.csdn.net/z69183787/article/details/99415576)
+
+
+
+
 
 年轻代进入老年代的三种情况
 
