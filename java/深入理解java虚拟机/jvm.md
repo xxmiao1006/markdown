@@ -544,3 +544,18 @@ mataSapce内存溢出基本都是加载类异常
 
 
 
+1.在线profiling
+
+但是，当生产系统确实存在这种需求时，也不是没有选择。我建议使用 JFR 配合JMC来做 Profiling，因为它是从 Hotspot JVM 内部收集底层信息，并经过了大量优化，性能开销非常低，通常是低于 2% 的；并且如此强大的工具，也已经被 Oracle 开源出来！所以，JFR/JMC 完全具备了生产系统 Profiling 的能力，目前也确实在真正大规模部署的云产品上使用过相关技术，快速地定位了问题。它的使用也非常方便，你不需要重新启动系统或者提前增加配置。例如，你可以在运行时启动 JFR 记录，并将这段时间的信息写入文件：
+
+前提是应用启动时加了参数：
+
+```bash
+-XX:+UnlockCommercialFeatures  -XX:+FlightRecorder
+```
+
+```bash
+jcmd <pid> JFR.start duration=120s filename=myrecording.jfr
+```
+
+然后，使用 JMC 打开“.jfr 文件”就可以进行分析了，方法、异常、线程、IO 等应有尽有，其功能非常强大。

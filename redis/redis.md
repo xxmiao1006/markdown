@@ -2465,6 +2465,24 @@ int rdbSaveBackground(char *filename) {
 
 
 
+1.识别Redis内存交换的检查方法如下：
+
+1）查询Redis进程号：
+
+```bash
+redis-cli -p 6379 info server | grep process_id
+```
+
+2）根据进程号查询内存交换信息：
+
+```bash
+cat /proc/4476/smaps | grep Swap
+```
+
+
+
+
+
 
 
 
