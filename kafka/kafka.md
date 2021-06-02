@@ -52,6 +52,48 @@ ______
 
 ------
 
+
+
+![kafka集群搭建-1.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3vxt59ggj60tr0gc47w02.jpg)
+
+
+
+![kafka集群搭建-2.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3vyhf7wwj61550i0apm02.jpg)
+
+
+
+![kafka集群搭建-3.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3yc5k7zzj61560bw15r02.jpg)
+
+
+
+![kafka集群搭建-4.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3ycy8vb3j616a0djwsh02.jpg)
+
+
+
+![kafka集群搭建-5.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3yvcl8fbj615p098qdk02.jpg)
+
+
+
+![kafka集群配置-6.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3yw7m3zjj615c0k4wx802.jpg)
+
+
+
+![kafka集群搭建-7.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3z2e9vquj615s0cik6x02.jpg)
+
+
+
+![kafka集群搭建-8.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3zix9rjcj611w0i3tn902.jpg)
+
+
+
+![kafka集群搭建-9.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr3zjjlf43j613k0eqdqk02.jpg)
+
+
+
+
+
+
+
 ### 三. kafka 测试
 
 1. 启动zookeeper
