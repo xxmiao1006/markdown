@@ -1000,6 +1000,14 @@ show global variables like 'innodb_io_capacity'
 
 6.确定一个排序是否使用了临时文件,这个方法是通过查看 OPTIMIZER_TRACE 的结果来确认的，你可以从 number_of_tmp_files 中看到是否使用了临时文件。number_of_tmp_files 表示的是，排序过程中使用的临时文件数，如果 sort_buffer_size 超过了需要排序的数据量的大小，number_of_tmp_files 就是 0，表示排序可以直接在内存中完成。否则就需要放在临时文件中排序。sort_buffer_size 越小，需要分成的份数越多，number_of_tmp_files 的值就越大。
 
+   sort_buffer是在server层，5.7好像是默认256K（On Linux, there are thresholds of 256KB and 2MB）
+
+​	sort_buffer_size，就是 MySQL 为排序开辟的内存（sort_buffer）的大小。如果要排序的数据量小于 sort_buffer_size，排序就在内存中完成。但如果排序数据量太大，内存放不下，则不得不利用磁盘临时文件辅助排序。
+
+​	max_length_for_sort_data，默认1024个字节（5.7），是 MySQL 中专门控制用于排序的行数据的长度的一个参数。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。
+
+[Mysql中单路排序和双路排序详解](https://blog.csdn.net/m0_45406092/article/details/112609434)
+
 ```sql
 
 /* 打开optimizer_trace，只对本线程有效 */
@@ -1020,6 +1028,14 @@ select VARIABLE_VALUE into @b from performance_schema.session_status where varia
 /* 计算Innodb_rows_read差值 */
 select @b-@a;
 ```
+
+sortbuffer全字段排序（单路排序？）
+
+![全字段排序（单路排序）.jpg](http://ww1.sinaimg.cn/large/0072fULUgy1gr56a8f1s8j60vq0nsq5x02.jpg)
+
+sortbuffer rowId排序（双路排序？）
+
+![rowId排序（双路排序）.jpg](http://ww1.sinaimg.cn/large/0072fULUgy1gr56c22ci1j60vq0nsjun02.jpg)
 
 7.确定索引的选择性
 
