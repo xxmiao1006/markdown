@@ -1004,7 +1004,7 @@ show global variables like 'innodb_io_capacity'
 
 ​	sort_buffer_size，就是 MySQL 为排序开辟的内存（sort_buffer）的大小。如果要排序的数据量小于 sort_buffer_size，排序就在内存中完成。但如果排序数据量太大，内存放不下，则不得不利用磁盘临时文件辅助排序。
 
-​	max_length_for_sort_data，默认1024个字节（5.7），是 MySQL 中专门控制用于排序的行数据的长度的一个参数。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。
+​	max_length_for_sort_data，默认1024个字节（5.7，8默认值为4096，但我看官网这个参数已经被废弃了，之前用来决定使用哪种filesort算法），是 MySQL 中专门控制用于排序的行数据的长度的一个参数。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。
 
 [Mysql中单路排序和双路排序详解](https://blog.csdn.net/m0_45406092/article/details/112609434)
 
@@ -1252,3 +1252,8 @@ show variables like 'innodb_buffer_pool%';
 [何登成的《MySQL 加锁处理分析》](https://github.com/hedengcheng/tech)
 
 [MySQL8.0 新特性 Hash Join](https://www.cnblogs.com/cchust/p/11961851.html)
+
+[mysql官网-配置参数](https://dev.mysql.com/doc/refman/8.0/en/server-option-variable-reference.html)
+
+[mysql undo log位置_MySQL 日志(redo log 和 undo log) 都是什么鬼？](https://blog.csdn.net/weixin_42366095/article/details/113435651)
+
