@@ -551,7 +551,24 @@ mataSapce内存溢出基本都是加载类异常
 前提是应用启动时加了参数：
 
 ```bash
--XX:+UnlockCommercialFeatures  -XX:+FlightRecorder
+-XX:+UnlockCommercialFeatures  
+-XX:+FlightRecorder
+
+
+//开启商业特性和飞行记录器
+-XX:+UnlockCommercialFeatures"
+-XX:+FlightRecorder"
+//开启远程调试
+-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+//开启JMC服务端口
+-Dcom.sun.management.jmxremote.rmi.port=1099
+-Dcom.sun.management.jmxremote=true
+-Dcom.sun.management.jmxremote.port=1099
+-Dcom.sun.management.jmxremote.ssl=false
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.local.only=false
+//这个ip是你的服务器所在的ip，不是你的本地机器的ip
+-Djava.rmi.server.hostname=192.168.1.175
 ```
 
 ```bash
@@ -559,3 +576,12 @@ jcmd <pid> JFR.start duration=120s filename=myrecording.jfr
 ```
 
 然后，使用 JMC 打开“.jfr 文件”就可以进行分析了，方法、异常、线程、IO 等应有尽有，其功能非常强大。
+
+nohup java -jar -server -Xms1024M -Xmx1024M -Xss512k -XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=256M -XX:+UseConcMarkSweepGC -XX:+PrintGCDateStamps -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/root/Xhub/dumpLocation  -XX:+PrintGCDetails -Xloggc:/root/Xhub/gclogs/devicegc.log  -XX:+UnlockCommercialFeatures  -XX:+FlightRecorder -Dcom.sun.management.jmxremote.rmi.port=1099 -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Djava.rmi.server.hostname=192.168.1.175 DSLinkHub-Xhub-device-server-1.0-SNAPSHOT.jar --server.port=8769 --spring.profiles.active=dev> /root/Xhub/serviceLogs/device-8769.txt &
+
+![jmc.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr9o36qfdnj60p00czq3102.jpg)
+
+[jmc使用--线上profiling](https://blog.csdn.net/yunfeng482/article/details/89384912)
+
+[jmc使用](https://www.cnblogs.com/duanxz/p/8533174.html)
+
