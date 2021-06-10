@@ -46,7 +46,7 @@ redo log 是循环写的，空间固定会用完；binlog 是可以追加写入�
       7. 执行器和innoDB在执行update语句时候的流程是什么样的?
       8. 如果数据库误操作, 如何执行数据恢复?
       9. 什么是两阶段提交, 为什么需要两阶段提交, 两阶段提交怎么保证数据库中两份日志间的逻辑一致性(什么叫逻辑一致性)?
-     10. 如果不是两阶段提交, 先写redo log和先写bin log两种情况各会遇到什么问题?
+          10. 如果不是两阶段提交, 先写redo log和先写bin log两种情况各会遇到什么问题?
 
 
 
@@ -82,3 +82,22 @@ binlog为什么说是逻辑日志呢？它里面有内容也会存储成物理�
 
 系统表空间就是用来放系统信息的，比如数据字典什么的，对应的磁盘文件是ibdata1,
 数据表空间就是一个个的表数据文件，对应的磁盘文件就是 表名.ibd
+
+
+
+
+
+  在源实例上
+vi my.table
+XXXX.table1
+
+xtrabackup --defaults-file=/home/meinian/data/backup-my.cnf --tables-file='XXXX.table1' --backup --target-dir=/home/meinian/data/0111backuptest
+下载对应文件ibd文件，需要复制到需要备份的文件目录
+
+在目标实例
+首先创建一个一模一样的表
+alter table table1 discard tablespace;
+上传文件，主要使用mysql账户进行操作
+alter table table1 import tablespace;
+
+select count(1) from table1; -- 测试数据是否正常  
