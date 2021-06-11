@@ -536,3 +536,10 @@ class Singleton{
     }
 }
 ```
+
+
+
+
+
+[就是要你懂Java中volatile关键字实现原理](https://www.cnblogs.com/xrq730/p/7048693.html)
+
