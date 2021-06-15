@@ -957,7 +957,7 @@ group by 的几种实现算法，从中可以总结一些使用的指导原则�
 
 select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60
 
-
+注意：事务在第一个sql启动，后边有提到 不区分select update
 
 
 
