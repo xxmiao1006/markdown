@@ -959,7 +959,7 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 
 注意：事务在第一个sql启动，后边有提到 不区分select update
 
-
+[undo_redo](chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://bos.itdks.com/b2c20ce5c11940b6b0a4e98547f67664.pdf)
 
 
 
