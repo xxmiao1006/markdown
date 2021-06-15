@@ -1635,43 +1635,47 @@ b6b3c6f20f741becccfe19f47028662fdfe8cba9 192.168.1.175:8001@18001 myself,master 
 
 
 ```bash
-[root@node1 src]# ./redis-cli --cluster help
+redis-cli --cluster help
 Cluster Manager Commands:
-  create         host1:port1 ... hostN:portN    # 创建一个集群
-                 --cluster-replicas <arg>
-  check          host:port
-  info           host:port
-  fix            host:port
-  reshard        host:port
-                 --cluster-from <arg>
-                 --cluster-to <arg>
-                 --cluster-slots <arg>
-                 --cluster-yes
-                 --cluster-timeout <arg>
-                 --cluster-pipeline <arg>
-  rebalance      host:port
-                 --cluster-weight <node1=w1...nodeN=wN>
-                 --cluster-use-empty-masters
-                 --cluster-timeout <arg>
-                 --cluster-simulate
-                 --cluster-pipeline <arg>
-                 --cluster-threshold <arg>
-  add-node       new_host:new_port existing_host:existing_port  #将一个节点添加到集群里头
-                 --cluster-slave
-                 --cluster-master-id <arg>
-  del-node       host:port node_id
-  call           host:port command arg arg .. arg  #可以执行redis命令
-  set-timeout    host:port milliseconds
-  import         host:port
-                 --cluster-from <arg>
-                 --cluster-copy
-                 --cluster-replace
+  create         host1:port1 ... hostN:portN   #创建集群
+                 --cluster-replicas <arg>      #从节点个数
+  check          host:port                     #检查集群
+                 --cluster-search-multiple-owners #检查是否有槽同时被分配给了多个节点
+  info           host:port                     #查看集群状态
+  fix            host:port                     #修复集群
+                 --cluster-search-multiple-owners #修复槽的重复分配问题
+  reshard        host:port                     #指定集群的任意一节点进行迁移slot，重新分slots
+                 --cluster-from <arg>          #需要从哪些源节点上迁移slot，可从多个源节点完成迁移，以逗号隔开，传递的是节点的node id，还可以直接传递--from all，这样源节点就是集群的所有节点，不传递该参数的话，则会在迁移过程中提示用户输入
+                 --cluster-to <arg>            #slot需要迁移的目的节点的node id，目的节点只能填写一个，不传递该参数的话，则会在迁移过程中提示用户输入
+                 --cluster-slots <arg>         #需要迁移的slot数量，不传递该参数的话，则会在迁移过程中提示用户输入。
+                 --cluster-yes                 #指定迁移时的确认输入
+                 --cluster-timeout <arg>       #设置migrate命令的超时时间
+                 --cluster-pipeline <arg>      #定义cluster getkeysinslot命令一次取出的key数量，不传的话使用默认值为10
+                 --cluster-replace             #是否直接replace到目标节点
+  rebalance      host:port                                      #指定集群的任意一节点进行平衡集群节点slot数量 
+                 --cluster-weight <node1=w1...nodeN=wN>         #指定集群节点的权重
+                 --cluster-use-empty-masters                    #设置可以让没有分配slot的主节点参与，默认不允许
+                 --cluster-timeout <arg>                        #设置migrate命令的超时时间
+                 --cluster-simulate                             #模拟rebalance操作，不会真正执行迁移操作
+                 --cluster-pipeline <arg>                       #定义cluster getkeysinslot命令一次取出的key数量，默认值为10
+                 --cluster-threshold <arg>                      #迁移的slot阈值超过threshold，执行rebalance操作
+                 --cluster-replace                              #是否直接replace到目标节点
+  add-node       new_host:new_port existing_host:existing_port  #添加节点，把新节点加入到指定的集群，默认添加主节点
+                 --cluster-slave                                #新节点作为从节点，默认随机一个主节点
+                 --cluster-master-id <arg>                      #给新节点指定主节点
+  del-node       host:port node_id                              #删除给定的一个节点，成功后关闭该节点服务
+  call           host:port command arg arg .. arg               #在集群的所有节点执行相关命令
+  set-timeout    host:port milliseconds                         #设置cluster-node-timeout
+  import         host:port                                      #将外部redis数据导入集群
+                 --cluster-from <arg>                           #将指定实例的数据导入到集群
+                 --cluster-copy                                 #migrate时指定copy
+                 --cluster-replace                              #migrate时指定replace
   help           
 
 For check, fix, reshard, del-node, set-timeout you can specify the host and port of any working node in the cluster.
 ```
 
-
+[Redis 5.0 redis-cli --cluster help说明](https://www.cnblogs.com/zhoujinyi/p/11606935.html)
 
 
 
@@ -2465,6 +2469,34 @@ int rdbSaveBackground(char *filename) {
 
 
 
+1.识别Redis内存交换的检查方法如下：
+
+1）查询Redis进程号：
+
+```bash
+redis-cli -p 6379 info server | grep process_id
+```
+
+2）根据进程号查询内存交换信息：
+
+```bash
+cat /proc/4476/smaps | grep Swap
+```
+
+
+
+2. reids脑裂
+
+Redis 已经提供了两个配置项来限制主库的请求处理，分别是 min-slaves-to-write 和 min-slaves-max-lag。
+
+min-slaves-to-write：这个配置项设置了主库能进行数据同步的最少从库数量；
+
+min-slaves-max-lag：这个配置项设置了主从库间进行数据复制时，从库给主库发送 ACK 消息的最大延迟（以秒为单位）。
+
+有了这两个配置项后，我们就可以轻松地应对脑裂问题了。具体咋做呢？我们可以把 min-slaves-to-write 和 min-slaves-max-lag 这两个配置项搭配起来使用，分别给它们设置一定的阈值，假设为 N 和 T。这两个配置项组合后的要求是，主库连接的从库中至少有 N 个从库，和主库进行数据复制时的 ACK 消息延迟不能超过 T 秒，否则，主库就不会再接收客户端的请求了。即使原主库是假故障，它在假故障期间也无法响应哨兵心跳，也不能和从库进行同步，自然也就无法和从库进行 ACK 确认了。这样一来，min-slaves-to-write 和 min-slaves-max-lag 的组合要求就无法得到满足，原主库就会被限制接收客户端请求，客户端也就不能在原主库中写入新数据了。
+
+假设从库有 K 个，可以将 min-slaves-to-write 设置为 K/2+1（如果 K 等于 1，就设为 1），将 min-slaves-max-lag 设置为十几秒（例如 10～20s），在这个配置下，如果有一半以上的从库和主库进行的 ACK 消息延迟超过十几秒，我们就禁止主库接收客户端写请求。
+
 
 
 
@@ -2489,3 +2521,4 @@ int rdbSaveBackground(char *filename) {
 
 [Redis 6.X Cluster 集群搭建](https://mp.weixin.qq.com/s?__biz=MzU3NDkwMjAyOQ==&mid=2247486674&idx=1&sn=f265262eb90c312ddaf6b8ddfcbfa646&scene=21#wechat_redirect)
 
+[为什么Redis集群有16384个槽](https://www.cnblogs.com/rjzheng/p/11430592.html)

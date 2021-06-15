@@ -207,3 +207,5 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 
 [面试题系列：MQ 夺命连环11问](https://mp.weixin.qq.com/s?__biz=MzI0NTE4NjA0OQ==&mid=2658374961&idx=1&sn=63aea1ec6fe47dca3542900af5c054dc&chksm=f2d55e5fc5a2d749af5ebb965eac0d09ba2f586875f119fe98db3a059ac331a52a8bd842fe06&mpshare=1&scene=24&srcid=0503wGpBC7g9bVqOPOw9755r&sharer_sharetime=1620033842736&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
 
+[RabbitMQ-HA搭建-部署](https://blog.csdn.net/qq_37681291/article/details/81099318)
+

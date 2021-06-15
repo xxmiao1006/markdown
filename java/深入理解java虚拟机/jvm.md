@@ -310,7 +310,7 @@ GCT：从应用程序启动到采样时gc用的总时间(s)
 [jvm 性能调优工具之 jstat](https://www.jianshu.com/p/213710fb9e40)
 
 ```bash
-#这个命令可以查看 Metaspace 加载的到底是哪些类
+#这个命令可以查看 Metaspace 加载的到底是哪些类   需启用参数 -XX:+UnlockDiagnosticVMOptions
 jcmd pid GC.class_stats
 
 jcmd pid GC.class_stats |awk '{print $13}'| sort | uniq -c |sort -r| head
@@ -479,6 +479,19 @@ jcmd <pid> VM.native_memory detail.diff
 
 
 
+mataSapce内存溢出基本都是加载类异常
+
+-XX:+TraceClassLoading
+
+-XX:+TraceClassUnloading
+
+从gc日志能够看出来，导致该full gc的原因是达到了metaspace的gc阈值，这里先解释下`Metadata GC Threshold`和`Last ditch collection`：
+
+-  `Metadata GC Threshold`：metaspace空间不能满足分配时触发，这个阶段不会清理软引用；
+-  `Last ditch collection`：经过`Metadata GC Threshold`触发的full gc后还是不能满足条件，这个时候会触发再一次的gc cause为`Last ditch collection`的full gc，这次full gc会清理掉软引用。
+
+`XX:+HeapDumpBeforeFullGC`、`-XX:+HeapDumpAfterFullGC`分别在发生full gc前后做heap dump
+
 
 
 
@@ -507,6 +520,20 @@ jcmd <pid> VM.native_memory detail.diff
 
 [Java中9种常见的CMS GC问题分析与解决](https://tech.meituan.com/2020/11/12/java-9-cms-gc.html)
 
+[一次jvm调优实战](https://mp.weixin.qq.com/s?__biz=MzU2NjIzNDk5NQ==&mid=2247496741&idx=1&sn=1fa0f6cd5802563b203af5926890b06e&chksm=fcad2e39cbdaa72fbedf531ad54ea6b0aaae1f7fc8ed1d90667547f14556ce5af72c79e4ade6&scene=132#wechat_redirect)
+
+[JVM Metaspace内存溢出排查与总结](https://www.cnblogs.com/maoyx/p/13934732.html)
+
+[大量类加载器创建导致诡异FullGC](https://zhuanlan.zhihu.com/p/186226342)
+
+[记录一次线上GC问题/cms参数](https://blog.csdn.net/qq_35211818/article/details/104182847)
+
+[java反射导致的fullgc  碰到过，mybatis](https://blog.csdn.net/z69183787/article/details/99415576)
+
+
+
+
+
 年轻代进入老年代的三种情况
 
 * 大对象直接进入老年代
@@ -516,4 +543,45 @@ jcmd <pid> VM.native_memory detail.diff
 
 
 
+
+1.在线profiling
+
+但是，当生产系统确实存在这种需求时，也不是没有选择。我建议使用 JFR 配合JMC来做 Profiling，因为它是从 Hotspot JVM 内部收集底层信息，并经过了大量优化，性能开销非常低，通常是低于 2% 的；并且如此强大的工具，也已经被 Oracle 开源出来！所以，JFR/JMC 完全具备了生产系统 Profiling 的能力，目前也确实在真正大规模部署的云产品上使用过相关技术，快速地定位了问题。它的使用也非常方便，你不需要重新启动系统或者提前增加配置。例如，你可以在运行时启动 JFR 记录，并将这段时间的信息写入文件：
+
+前提是应用启动时加了参数：
+
+```bash
+-XX:+UnlockCommercialFeatures  
+-XX:+FlightRecorder
+
+
+//开启商业特性和飞行记录器
+-XX:+UnlockCommercialFeatures"
+-XX:+FlightRecorder"
+//开启远程调试
+-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+//开启JMC服务端口
+-Dcom.sun.management.jmxremote.rmi.port=1099
+-Dcom.sun.management.jmxremote=true
+-Dcom.sun.management.jmxremote.port=1099
+-Dcom.sun.management.jmxremote.ssl=false
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.local.only=false
+//这个ip是你的服务器所在的ip，不是你的本地机器的ip
+-Djava.rmi.server.hostname=192.168.1.175
+```
+
+```bash
+jcmd <pid> JFR.start duration=120s filename=myrecording.jfr
+```
+
+然后，使用 JMC 打开“.jfr 文件”就可以进行分析了，方法、异常、线程、IO 等应有尽有，其功能非常强大。
+
+nohup java -jar -server -Xms1024M -Xmx1024M -Xss512k -XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=256M -XX:+UseConcMarkSweepGC -XX:+PrintGCDateStamps -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/root/Xhub/dumpLocation  -XX:+PrintGCDetails -Xloggc:/root/Xhub/gclogs/devicegc.log  -XX:+UnlockCommercialFeatures  -XX:+FlightRecorder -Dcom.sun.management.jmxremote.rmi.port=1099 -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Djava.rmi.server.hostname=192.168.1.175 DSLinkHub-Xhub-device-server-1.0-SNAPSHOT.jar --server.port=8769 --spring.profiles.active=dev> /root/Xhub/serviceLogs/device-8769.txt &
+
+![jmc.png](http://ww1.sinaimg.cn/large/0072fULUgy1gr9o36qfdnj60p00czq3102.jpg)
+
+[jmc使用--线上profiling](https://blog.csdn.net/yunfeng482/article/details/89384912)
+
+[jmc使用](https://www.cnblogs.com/duanxz/p/8533174.html)
 

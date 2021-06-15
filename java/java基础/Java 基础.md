@@ -1444,3 +1444,25 @@ Java 注解是附加在代码中的一些元信息，用于一些工具在编译
 
 
 <div align="center"><img width="320px" src="https://cs-notes-1256109796.cos.ap-guangzhou.myqcloud.com/githubio/公众号二维码-2.png"></img></div>
+
+
+1.对比 Java 标准 NIO 类库，你知道 Netty 是如何实现更高性能的吗？
+
+* 更加优雅的 Reactor 模式实现、灵活的线程模型、利用 EventLoop 等创新性的机制，可以非常高效地管理成百上千的 Channel。
+
+* 充分利用了 Java 的 Zero-Copy 机制，并且从多种角度，“斤斤计较”般的降低内存分配和回收的开销。例如，使用池化的 Direct Buffer 等技术，在提高 IO 性能的同时，减少了对象的创建和销毁；利用反射等技术直接操纵 SelectionKey，使用数组而不是 Java 容器等。
+
+* 使用更多本地代码。例如，直接利用 JNI 调用 Open SSL 等方式，获得比 Java 内建 SSL 引擎更好的性能。
+
+* 在通信协议、序列化等其他角度的优化。
+
+
+
+
+
+
+
+[Java之String重点解析](https://juejin.cn/post/6907878726277529608)
+
+[深入解析String#intern](https://tech.meituan.com/2014/03/06/in-depth-understanding-string-intern.html)
+
