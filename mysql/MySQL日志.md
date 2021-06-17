@@ -101,3 +101,65 @@ alter table table1 discard tablespace;
 alter table table1 import tablespace;
 
 select count(1) from table1; -- 测试数据是否正常  
+
+
+
+### general log
+
+开启 general log 将所有到达MySQL Server的SQL语句记录下来。
+
+一般不会开启开功能，因为log的量会非常庞大。但个别情况下可能会临时的开一会儿general log以供排障使用。 
+相关参数一共有3：general_log、log_output、general_log_file
+
+show variables like 'general_log'; -- 查看日志是否开启
+
+set global general_log=on; -- 开启日志功能
+
+show variables like 'general_log_file'; -- 看看日志文件保存位置
+
+set global general_log_file='tmp/general.lg'; -- 设置日志文件保存位置
+
+show variables like 'log_output'; -- 看看日志输出类型 table或file
+
+set global log_output='table'; -- 设置输出类型为 table
+
+set global log_output='file'; -- 设置输出类型为file
+
+[mysql 之general_log日志开启详解以及清空](https://blog.csdn.net/u010735147/article/details/81871560)
+
+
+
+### slow log
+
+show variables like '%quer%';
+
+MySQL 慢查询的相关参数解释：
+
+slow_query_log    ：是否开启慢查询日志，1表示开启，0表示关闭。
+
+```sql
+mysql> set global slow_query_log='ON';
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql> set global slow_query_log_file='/var/lib/mysql/instance-1-slow.log';
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql> set global long_query_time=2;
+Query OK, 0 rows affected (0.00 sec)
+```
+
+> /etc/mysql/conf.d/mysql.cnf
+> [mysqld]
+> slow_query_log = ON
+> slow_query_log_file = /var/lib/mysql/instance-1-slow.log
+> long_query_time = 2
+
+log-slow-queries  ：旧版（5.6以下版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log
+
+slow-query-log-file：新版（5.6及以上版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log
+
+long_query_time ：慢查询阈值，当查询时间多于设定的阈值时，记录日志。
+
+log_queries_not_using_indexes：未使用索引的查询也被记录到慢查询日志中（可选项）。
+
+log_output：日志存储方式。log_output='FILE'表示将日志存入文件，默认值是'FILE'。log_output='TABLE'表示将日志存入数据库，这样日志信息就会被写入到mysql.slow_log表中。MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：log_output='FILE,TABLE'。日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。

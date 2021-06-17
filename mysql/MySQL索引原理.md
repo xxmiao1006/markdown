@@ -666,6 +666,76 @@ ICP的使用限制
 
 7. 当sql使用覆盖索引时，不支持ICP优化方法。
 
+```sql
+CREATE TABLE `tuser` (
+  `id` int(11) NOT NULL,
+  `id_card` varchar(32) DEFAULT NULL,
+  `name` varchar(32) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `ismale` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_card` (`id_card`),
+  KEY `name_age` (`name`,`age`)
+) ENGINE=InnoDB
+
+--Using index condition
+--根据最左匹配原则，用到了联合索引中的name字段，age字段没有用到，但是存储引擎使用age条件过滤了部分需要
+--回表的数据
+explain select * from tuser where name like '张%' and age=10; 
+
+--Using index condition; Using where
+--在上一条语句的基础上加了一个没有在索引中的条件，所以需要通过存储引擎查出所有符合条件的语句后
+--拿到server层再用ismale字段过滤（Using where）
+explain select * from tuser where name like '张%' and age=10 and ismale = 1;
+```
+
+
+
+>   MySQL实战45讲--第五讲评论
+>
+> 一张表两个字段id, uname,id主键，uname普通索引
+> SELECT * FROM test_like WHERE uname LIKE 'j'/ 'j%' / '%j'/ '%j%'
+> 模糊查询like后面四种写法都可以用到uname的普通索引
+>
+> 添加一个age字段
+> like后面的'%j'/ '%j%' 这两种情况用不到索引
+> 把select * 改为 select id / select uname / select id,uname
+> like后面'j'/ 'j%' / '%j'/ '%j%' 这四种情况又都可以用到uname普通索引
+>
+> 建立uname,age的联合索引
+> 模糊查询还是 LIKE 'j'/ 'j%' / '%j'/ '%j%'四种情况
+> 其中select id / select uname / select id,uname
+> 会用到uname的普通索引
+> select * 会用到uname,age的组合索引  
+>
+> 
+>
+> 这几个例子真是好，如果把这四个例子理解透了，我想对mysql的索引就理解的差不多了。
+> 下面开始解答：
+> 1、因为查询的是 * ，会查询所有字段（id,uname）,而二级索引恰恰包含这些数据，又二级索引树比主键索引树小很多，所以直接挨个查询二级索引要比挨个查询主键索引要快的多，故用的是二级索引；
+> 2、因为添加了age字段，但是二级索引里面没有age字段，就必须要回主键树查询所有字段（回表过程），所以挨个查询主键索引树，就不走二级索引树了；
+> 3、因为建立了联合索引，所以二级索引树里面就包含了所有的字段（id,uname,age），所以就不用搜索主键索引树了；
+> 综上：二级索引树小，且又包含了我们所需要的字段，所以就直接用二级索引啦，但是仍然是挨个遍历的。所以这里是和老师说的"用索引"是一个意思。顺便解释下老师说的用索引定位：就是不用搜索整个索引库直接用二分法能快速找到的数据叫用索引定位。
+>
+> 
+>
+> 1. like 'j' 或 'j%' 可以使用索引，并且快速定位记录。
+> 2. like '%j' 或 '%j%'，只是在二级索引树上遍历查找记录，并不能快速定位（扫描了整棵索引树）。
+> 3. 只有 id 和 uname 字段时，上述 4 种 like 查询，uname 索引能满足 id 和 uname 的查询情况，不需要回表，所以选择了使用 uname 的索引树解决问题。
+> 4. 添加了 age 但无联合索引 (uname, age) 的情况，如果使用 uname 索引树，需要回表。在 like '%j' 或 '%j%' 直接扫描主键索引树，现象就是没有使用 uname 索引。
+> 5. 添加了 age 字段，也添加了 (uname, age) 索引，和第 3 点同理，使用覆盖索引就能满足 select * 的字段查询，不需要回表，因此使用了 (uname, age) 索引树。但是只有 like 'j' 和 'j%'
+> 能快速定位记录，而 like '%j' 和 '%j%' 也能使用该索引树，但是不能快速定位，需要顺序遍历。
+
+
+
+
+
+
+
+
+
+
+
 
 
 10.**redolog 和change buffer(普通索引用)**
@@ -961,7 +1031,13 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 
 [undo_redo](chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://bos.itdks.com/b2c20ce5c11940b6b0a4e98547f67664.pdf)
 
+监控 information_schema.Innodb_trx 表，设置长事务阈值，超过就报警 / 或者 kill；
 
+Percona 的 pt-kill 这个工具不错，推荐使用；
+
+在业务功能测试阶段要求输出所有的 general_log，分析日志行为提前发现问题；
+
+如果使用的是 MySQL 5.6 或者更新版本，把 innodb_undo_tablespaces 设置成 2（或更大的值）。如果真的出现大事务导致回滚段过大，这样设置后清理起来更方便。
 
 
 
