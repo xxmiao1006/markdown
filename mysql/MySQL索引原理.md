@@ -554,10 +554,10 @@ SHOW PROFILES;
 这个问题的简单回答是：约2千万行。
 
 - 在计算机中，磁盘存储数据最小单元是扇区，一个扇区的大小是512字节。
-
 - 文件系统中，最小单位是块，一个块大小就是4k；
-
 - InnoDB存储引擎最小储存单元是页，一页大小就是16k。
+
+> show VARIABLES like 'innodb_page_size' / 16384
 
 因为B+树叶子存的是数据，内部节点存的是键值+指针。索引组织表通过非叶子节点的二分查找法以及指针确定数据在哪个页中，进而再去数据页中找到需要的数据；
 
@@ -960,6 +960,64 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 注意：事务在第一个sql启动，后边有提到 不区分select update
 
 [undo_redo](chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://bos.itdks.com/b2c20ce5c11940b6b0a4e98547f67664.pdf)
+
+
+
+
+
+25.死锁
+
+当出现死锁以后，有两种策略：
+
+* 一种策略是，直接进入等待，直到超时。这个超时时间可以通过参数 innodb_lock_wait_timeout 来设置。
+
+> 在 InnoDB 中，innodb_lock_wait_timeout 的默认值是 50s，意味着如果采用第一个策略，当出现死锁以后，第一个被锁住的线程要过 50s 才会超时退出，然后其他线程才有可能继续执行。
+>
+> 但是，我们又不可能直接把这个时间设置成一个很小的值，比如 1s。这样当出现死锁的时候，确实很快就可以解开，但如果不是死锁，而是简单的锁等待呢？所以，超时时间设置太短的话，会出现很多误伤。所以我们一般使用死锁检测。
+
+* 另一种策略是，发起死锁检测，发现死锁后，主动回滚死锁链条中的某一个事务，让其他事务得以继续执行。将参数 innodb_deadlock_detect 设置为 on，表示开启这个逻辑。
+
+> innodb_deadlock_detect 的默认值本身就是 on。主动死锁检测在发生死锁的时候，是能够快速发现并进行处理的，但是它也是有额外负担的。死锁检测要耗费大量的 CPU 资源
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
