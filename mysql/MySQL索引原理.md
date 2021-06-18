@@ -1408,3 +1408,5 @@ show variables like 'innodb_buffer_pool%';
 
 [mysql undo log位置_MySQL 日志(redo log 和 undo log) 都是什么鬼？](https://blog.csdn.net/weixin_42366095/article/details/113435651)
 
+[mysql MDL读写锁阻塞，以及online ddl造成的“插队”现象](https://blog.csdn.net/q2878948/article/details/96430129)
+
