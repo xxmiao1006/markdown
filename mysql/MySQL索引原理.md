@@ -680,13 +680,17 @@ CREATE TABLE `tuser` (
 
 --Using index condition
 --根据最左匹配原则，用到了联合索引中的name字段，age字段没有用到，但是存储引擎使用age条件过滤了部分需要
---回表的数据
+--回表的数据(索引下推，5.6以前是需要回表查所有数据然后去server层过滤的)
 explain select * from tuser where name like '张%' and age=10; 
 
 --Using index condition; Using where
 --在上一条语句的基础上加了一个没有在索引中的条件，所以需要通过存储引擎查出所有符合条件的语句后
 --拿到server层再用ismale字段过滤（Using where）
 explain select * from tuser where name like '张%' and age=10 and ismale = 1;
+
+--Using where; Using index
+--在二级索引里面查到了所有字段，没有回表，但是age字段是在server层过滤，所以使用到了Using where
+explain select name,age from tuser where name like '张%' and age=10 ;
 ```
 
 
