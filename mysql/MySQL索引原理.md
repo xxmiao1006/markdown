@@ -1033,6 +1033,8 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 
 注意：事务在第一个sql启动，后边有提到 不区分select update
 
+**begin/start transaction 命令并不是一个事务的起点，在执行到它们之后的第一个操作 InnoDB 表的语句，事务才真正启动。如果你想要马上启动一个事务，可以使用 start transaction with consistent snapshot 这个命令。**
+
 [undo_redo](chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://bos.itdks.com/b2c20ce5c11940b6b0a4e98547f67664.pdf)
 
 监控 information_schema.Innodb_trx 表，设置长事务阈值，超过就报警 / 或者 kill；
@@ -1409,4 +1411,3 @@ show variables like 'innodb_buffer_pool%';
 [mysql undo log位置_MySQL 日志(redo log 和 undo log) 都是什么鬼？](https://blog.csdn.net/weixin_42366095/article/details/113435651)
 
 [mysql MDL读写锁阻塞，以及online ddl造成的“插队”现象](https://blog.csdn.net/q2878948/article/details/96430129)
-
