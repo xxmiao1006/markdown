@@ -1376,6 +1376,16 @@ show variables like 'innodb_buffer_pool%';
 
 
 
+13.change buffer
+
+```sql
+show variables like 'innodb_change%';
+innodb_change_buffer_max_size	--25 默认是25，即缓冲池(innodb buffer pool)的1/4。最大可设置为50,采用默认即可
+innodb_change_buffering	all --默认是all支持所有DML操作
+```
+
+
+
 
 
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
@@ -1411,3 +1421,12 @@ show variables like 'innodb_buffer_pool%';
 [mysql undo log位置_MySQL 日志(redo log 和 undo log) 都是什么鬼？](https://blog.csdn.net/weixin_42366095/article/details/113435651)
 
 [mysql MDL读写锁阻塞，以及online ddl造成的“插队”现象](https://blog.csdn.net/q2878948/article/details/96430129)
+
+
+
+
+
+[MySQL 性能需要关注的参数](http://blog.itpub.net/29654823/viewspace-2157149/)
+
+[MySQL innodb引擎的事务执行过程](http://blog.itpub.net/29654823/viewspace-2153187/)
+

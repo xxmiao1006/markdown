@@ -224,7 +224,7 @@ lsn号从4951647增长到5046150
 
 
 
-
+[mysql innodb_log_file_size 和innodb_log_buffer_size参数](http://blog.itpub.net/29654823/viewspace-2147683/)
 
 
 
