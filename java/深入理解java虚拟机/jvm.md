@@ -542,7 +542,7 @@ mataSapce内存溢出基本都是加载类异常
 
 [java反射导致的fullgc  碰到过，mybatis](https://blog.csdn.net/z69183787/article/details/99415576)
 
-
+[Java 虚拟机底层原理知识总结](https://github.com/doocs/jvm)
 
 
 

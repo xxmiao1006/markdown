@@ -163,3 +163,80 @@ long_query_time ：慢查询阈值，当查询时间多于设定的阈值时，�
 log_queries_not_using_indexes：未使用索引的查询也被记录到慢查询日志中（可选项）。
 
 log_output：日志存储方式。log_output='FILE'表示将日志存入文件，默认值是'FILE'。log_output='TABLE'表示将日志存入数据库，这样日志信息就会被写入到mysql.slow_log表中。MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：log_output='FILE,TABLE'。日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。
+
+
+
+
+
+### **redo log**
+
+查看当前redo log大小
+
+```sql
+show variables like 'innodb_log%';
+
++-----------------------------+----------+
+| Variable_name               | Value    |
++-----------------------------+----------+
+| innodb_log_buffer_size      | 16777216 |
+| innodb_log_checksums        | ON       |
+| innodb_log_compressed_pages | ON       |
+| innodb_log_file_size        | 50331648 |
+| innodb_log_files_in_group   | 2        |
+| innodb_log_group_home_dir   | ./       |
+| innodb_log_write_ahead_size | 8192     |
++-----------------------------+----------+
+```
+
+目前大小为`innodb_log_file_size` 50331648/1024/1024=48MB
+
+计算每分钟redo log量
+
+```
+
+mysql>  pager grep -i "Log sequence number";
+PAGER set to 'grep -i "Log sequence number"'
+mysql> show engine innodb status \G select sleep(60); show engine innodb status \G
+Log sequence number 4951647
+1 row in set (0.01 sec)
+1 row in set (1 min 0.00 sec)
+Log sequence number 5046150
+1 row in set (0.00 sec)
+```
+
+在这60s期间，我们业务系统处于正常的运行状态，此次为实验环境，我做了简单的业务模拟操作。
+
+lsn号从4951647增长到5046150
+
+一分钟redo log量：round((5046150-4951647)/1024)=92KB
+
+一小时redo log量：92K x 60=5520KB
+
+正常来讲，数据库10分钟切换一次redo log，故对于此数据库，单个redo log大小5520KB /6=920KB
+
+由于此数据库为测试平台，业务量较小，正常来讲生产库的单个redo log大小在200M-2G之间
+
+3、编辑my.cnf文件并重启数据库生效
+
+```
+ innodb_log_file_size=200M
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## MySQL的优化
+
+提高redo log的大小
+
+提高change buffer（如果写过需要立即查则不使用,change buffer pool用的是buffer pool里的内存），持久化写入ibdata系统表空间里面
+
