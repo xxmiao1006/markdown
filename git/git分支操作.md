@@ -177,3 +177,40 @@ forks:>1000 fork>1000
 pushed:>2019-09-01 2019年9月1日后有更新的
 
 language:java 用Java编写的项目  
+
+
+
+
+
+
+
+```
+git config --global user.name "xxmiao1006" git config --global user.email ""
+```
+
+方式一：克隆仓库
+
+```
+git clone https://codeup.aliyun.com/60d28c0ef83c1d8439a30d23/efos-XHub.gitcd efos-XHubtouch README.md
+git add README.mdgit commit -m "add README"git push -u origin master
+```
+
+方式二：已有文件夹或仓库
+
+```
+cd existing_folder
+git init
+git remote add origin https://codeup.aliyun.com/60d28c0ef83c1d8439a30d23/efos-XHub.git
+git add .
+git commit
+git push -u origin master
+```
+
+方式三：导入代码库
+
+```
+git clone --bare https://git.example.com/your/project.git your_path
+cd your_path
+git remote set-url origin https://codeup.aliyun.com/60d28c0ef83c1d8439a30d23/efos-XHub.git
+git push --mirror
+```
