@@ -451,13 +451,61 @@ Spring Bean 的销毁过程会依次调用 DisposableBean 的 destroy 方法和 
 
 
 
+2.Spring 是如何甄别单例情况下的构造方法循环依赖的
+
+​	Spring 通过 `Set<String> singletonsCurrentlyInCreation` 记录当前正在创建中的实例名称
+
+创建实例对象之前，会判断 `singletonsCurrentlyInCreation` 中是否存在该实例的名称，如果存在则表示死循环了，那么抛出 `BeanCurrentlyInCreationException`
 
 
 
+3.Spring 是如何甄别原型循环依赖的
+
+​	Spring 通过 `ThreadLocal<Object> prototypesCurrentlyInCreation` 记录当前线程正在创建中的原型实例名称
+
+创建原型实例之前，会判断 `prototypesCurrentlyInCreation` 中是否存在该实例的名称，如果存在则表示死循环了，那么抛出 `BeanCurrentlyInCreationException`
 
 
 
+4.为什么单例构造方法循环依赖和原型循环依赖的报错时机不一致
 
+​	单例构造方法实例的创建是在 Spring 启动过程中完成的，而原型实例是在获取的时候创建的
+
+[Spring 是如何判定原型循环依赖和构造方法循环依赖的？](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247508518&idx=1&sn=0807103f612130bad5523dc80c5ce31d&chksm=ebd59d0adca2141c78f5424fa2440d91d3cc4174ce6416e0f9b4807b82da02f7a914c51af580&scene=126&sessionid=1623981014&key=ad5be9c1f718c28a0eee1b7db78e63b8b841b3df0d447d28e5e0b3eef5d850baf37569644867fe537d89a50358a18db7ea1a9132a05a95e0ea96a44030f6e680380246a80b4f22be5187b06f2ddd4c800ab4cdc9503eff006b9d366f47a2cff60b8fd3d9527d6b2f7988f4f0e3fe6d43c15bb957a0560d86418376238533d378&ascene=1&uin=MTgxNTEwNTUxMw%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=Aa6eVGeSuvB0ik2PgdTl%2FRc%3D&pass_ticket=8tRCVknbPuwaL8KpNWmGngJa0aRSfFMIoFVfNttCR86zgUvht7qFGVGIC0exrX8J&wx_header=0)
+
+
+
+5.spring如何解决循环依赖
+
+![spring解决循环依赖.png](http://ww1.sinaimg.cn/large/0072fULUgy1grt5zwt1lyj60j70aq46i02.jpg)
+
+
+
+6.Spring 的循环依赖：真的必须非要三级缓存吗？
+
+三级缓存各自的作用
+
+* 第一级缓存存的是对外暴露的对象，也就是我们应用需要用到的
+
+* 第二级缓存的作用是为了处理循环依赖的对象创建问题，里面存的是半成品对象或半成品对象的代理对象
+
+* 第三级缓存的作用处理存在 AOP + 循环依赖的对象创建问题，能将代理对象提前创建
+
+  
+
+Spring 为什么要引入第三级缓存
+
+严格来讲，第三级缓存并非缺它不可，因为可以提前创建代理对象
+
+提前创建代理对象只是会节省那么一丢丢内存空间，并不会带来性能上的提升，但是会破环 Spring 的设计原则
+
+Spring 的设计原则是尽可能保证普通对象创建完成之后，再生成其 AOP 代理（尽可能延迟代理对象的生成）
+
+所以 Spring 用了第三级缓存，既维持了设计原则，又处理了循环依赖；牺牲那么一丢丢内存空间是愿意接受的
+
+
+
+[Spring 的循环依赖：真的必须非要三级缓存吗？](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247503628&idx=1&sn=f1f3fec91ec5490b28f24d74b225c399&chksm=ebd5f020dca27936c46c13ace0f9cfb150fc7671b679ed0b38cf4f2f237b6a54c5eb327da94a&scene=21#wechat_redirect)
 
 
 
