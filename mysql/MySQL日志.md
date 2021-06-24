@@ -230,7 +230,12 @@ lsn号从4951647增长到5046150
 
 
 
+### redo log和binlog区别
 
+- redo log是属于innoDB层面，binlog属于MySQL Server层面的，这样在数据库用别的存储引擎时可以达到一致性的要求。
+- redo log是物理日志，记录该数据页更新的内容；binlog是逻辑日志，记录的是这个更新语句的原始逻辑
+- redo log是循环写，日志空间大小固定；binlog是追加写，是指一份写到一定大小的时候会更换下一个文件，不会覆盖。
+- binlog可以作为恢复数据使用，主从复制搭建，redo log作为异常宕机或者介质故障后的数据恢复使用。
 
 
 
@@ -240,3 +245,10 @@ lsn号从4951647增长到5046150
 
 提高change buffer（如果写过需要立即查则不使用,change buffer pool用的是buffer pool里的内存），持久化写入ibdata系统表空间里面
 
+
+
+
+
+
+
+[MySQL中的六种日志文件](https://blog.csdn.net/u012834750/article/details/79533866)
