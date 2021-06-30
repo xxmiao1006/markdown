@@ -252,3 +252,6 @@ lsn号从4951647增长到5046150
 
 
 [MySQL中的六种日志文件](https://blog.csdn.net/u012834750/article/details/79533866)
+
+[InnoDB的ACID事务-InnoDB存储引擎核心特性-参数补充](https://www.cnblogs.com/yaokaka/p/14042235.html)
+
