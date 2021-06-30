@@ -2040,6 +2040,189 @@ rdb模式：
 
 
 
+## redis内存
+
+查看redis的内存
+
+```bash
+127.0.0.1:6379> info memory
+# Memory
+used_memory:4131112  #由 Redis 分配器分配的内存总量，以字节（byte）为单位
+used_memory_human:3.94M # 以人类可读的格式返回 Redis 分配的内存总量
+used_memory_rss:11890688 #从操作系统的角度，返回 Redis 已分配的内存总量（俗称常驻集大小）。这个值和 top 、 ps 等命令的输出一致。
+used_memory_rss_human:11.34M
+used_memory_peak:4643992 #Redis 的内存消耗峰值（以字节为单位）
+used_memory_peak_human:4.43M
+used_memory_peak_perc:88.96% 
+used_memory_overhead:3404682
+used_memory_startup:791032
+used_memory_dataset:726430
+used_memory_dataset_perc:21.75%
+allocator_allocated:4200880
+allocator_active:5222400
+allocator_resident:8261632
+total_system_memory:4143288320
+total_system_memory_human:3.86G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+allocator_frag_ratio:1.24
+allocator_frag_bytes:1021520
+allocator_rss_ratio:1.58
+allocator_rss_bytes:3039232
+rss_overhead_ratio:1.44
+rss_overhead_bytes:3629056
+mem_fragmentation_ratio:2.91  #used_memory_rss 和 used_memory 之间的比率
+mem_fragmentation_bytes:7800592
+mem_not_counted_for_evict:2324
+mem_replication_backlog:0
+mem_clients_slaves:0
+mem_clients_normal:2485302
+mem_aof_buffer:2324
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+lazyfree_pending_objects:0
+```
+
+
+
+测试
+
+```bash
+127.0.0.1:6379> info memory
+# Memory
+used_memory:1031808
+used_memory_human:1007.62K
+used_memory_rss:8839168
+used_memory_rss_human:8.43M
+used_memory_peak:3388024
+used_memory_peak_human:3.23M
+total_system_memory:4142133248
+total_system_memory_human:3.86G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+mem_fragmentation_ratio:8.57
+mem_allocator:jemalloc-3.6.0
+127.0.0.1:6379> set stackFlowUpdate:94785989738590250 62631
+OK
+127.0.0.1:6379> object encoding stackFlowUpdate:94785989738590250
+"int"
+127.0.0.1:6379> info memory
+# Memory
+used_memory:1031920
+used_memory_human:1007.73K
+used_memory_rss:8863744
+used_memory_rss_human:8.45M
+used_memory_peak:3388024
+used_memory_peak_human:3.23M
+total_system_memory:4142133248
+total_system_memory_human:3.86G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+mem_fragmentation_ratio:8.59
+mem_allocator:jemalloc-3.6.0
+127.0.0.1:6379> set stackFlowUpdate:94786178717152195 62179
+OK
+127.0.0.1:6379> info memory
+# Memory
+used_memory:1032032
+used_memory_human:1007.84K
+used_memory_rss:8863744
+used_memory_rss_human:8.45M
+used_memory_peak:3388024
+used_memory_peak_human:3.23M
+total_system_memory:4142133248
+total_system_memory_human:3.86G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+mem_fragmentation_ratio:8.59
+mem_allocator:jemalloc-3.6.0
+```
+
+set stackFlowUpdate:94786178717152195 62179
+
+key ：stackFlowUpdate:94786178717152195  33个字节
+
+value: 使用的是int类型的编码  
+
+内存变化由 1031808->1031920->1032032;说明一个数据占了112个字节
+
+但是实际的
+
+
+
+安装pip3
+
+```
+# 下载指定版本
+wget https://pypi.python.org/packages/source/p/pip/pip-18.1.tar.gz
+# 解压
+tar -zxvf pip-18.1.tar.gz 
+# 安装
+cd pip-18.1
+python3 setup.py build
+python3 setup.py install
+# 添加到软连接
+ln -s /usr/local/python3/bin/pip3 /usr/bin/pip3
+# 查看软连接
+ll  /usr/bin/pip*
+```
+
+安装rdbtools
+
+```bash
+sudo yum install gcc
+pip install rdbtools python-lzf
+```
+
+查找单个key的内存
+
+```bash
+#redis-memory-for-key -s localhost -p 6379 -a bdy123 stackFlowUpdate:94786178717152195
+Key				stackFlowUpdate:94786178717152195
+Bytes				80
+Type				string
+```
+
+这个key占用了80B的内存，我们知道Redis 会使用一个全局哈希表保存所有键值对，哈希表的每一项是一个 dictEntry 的结构体，用来指向一个键值对。dictEntry 结构中有三个 8 字节的指针，分别指向 key、value 以及下一个 dictEntry，三个指针共 24 字节。如下
+
+![内存计算1.png](http://ww1.sinaimg.cn/large/0072fULUgy1gs03xgbch7j60s60cwmxg02.jpg)
+
+这里我们和112字节对上了  接下来要进一步分析剩下的key和value所占用的80字节
+
+因为 Redis 的数据类型有很多，而且，不同数据类型都有些相同的元数据要记录（比如最后一次访问的时间、被引用的次数等），所以，Redis 会用一个 RedisObject 结构体来统一记录这些元数据，同时指向实际数据。一个 RedisObject 包含了 8 字节的元数据和一个 8 字节指针，这个指针再进一步指向具体数据类型的实际数据所在。
+
+我们使用object encoding key来看这个value对应的String编码类型，其实我们可以猜到用的是int编码
+
+```
+127.0.0.1:6379> object encoding stackFlowUpdate:94786178717152195
+"int"
+```
+
+当你保存 64 位有符号整数时，String 类型会把它保存为一个 8 字节的 Long 类型整数，这种保存方式通常也叫作 int 编码方式。所以我们可以先猜测value这个redisObject所占用的字节大小为16字节 ,那么剩下的64字节就分配给了key这个redisObject，可以参考下图看内存分配。
+
+![redisString.png](http://ww1.sinaimg.cn/large/0072fULUgy1gs03p4q5tnj60hi0b076i02.jpg)
+
+
+
+
+
+![内存计算2.png](http://ww1.sinaimg.cn/large/0072fULUgy1gs04vpzz6yj615w0g60tp02.jpg)
+
 
 
 
@@ -2522,3 +2705,6 @@ min-slaves-max-lag：这个配置项设置了主从库间进行数据复制时�
 [Redis 6.X Cluster 集群搭建](https://mp.weixin.qq.com/s?__biz=MzU3NDkwMjAyOQ==&mid=2247486674&idx=1&sn=f265262eb90c312ddaf6b8ddfcbfa646&scene=21#wechat_redirect)
 
 [为什么Redis集群有16384个槽](https://www.cnblogs.com/rjzheng/p/11430592.html)
+
+[redis调优 -- 内存碎片](https://www.cnblogs.com/grimm/p/10288116.html)
+
