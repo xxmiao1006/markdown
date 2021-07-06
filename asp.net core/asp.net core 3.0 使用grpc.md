@@ -1,5 +1,9 @@
 ## asp.net core 3.0使用grpc
 
+gRPC 是一种在应用之间进行通信的新方式。 gRPC 使用 HTTP/2、流式传输、Protobuf 和消息协定来创建高性能的实时服务。
+
+
+
 首先新建一个webapi项目，引入nuget包，这个包含所需要的包以及grpc工具包
 
 ![grpc-1.png](https://wx1.sinaimg.cn/large/0072fULUgy1g95vt1tnakj311o0f2tai.jpg)
@@ -198,4 +202,81 @@ public void ConfigureServices(IServiceCollection services)
     </Protobuf>
   </ItemGroup>
 ```
+
+
+
+
+
+
+
+
+
+
+
+![1625452702718](C:\Users\miao\AppData\Roaming\Typora\typora-user-images\1625452702718.png)
+
+
+
+
+
+
+
+gRPC服务指标
+
+| “属性”                    | 描述                   |
+| :------------------------ | :--------------------- |
+| `total-calls`             | 总调用数               |
+| `current-calls`           | 当前调用               |
+| `calls-failed`            | 失败调用总数           |
+| `calls-deadline-exceeded` | 超出截止时间的调用总数 |
+| `messages-sent`           | 发送的邮件总数         |
+| `messages-received`       | 收到的消息总数         |
+| `calls-unimplemented`     | 总未实现调用数         |
+
+
+
+gRPC客户端指标
+
+| “属性”                    | 描述                   |
+| :------------------------ | :--------------------- |
+| `total-calls`             | 总调用数               |
+| `current-calls`           | 当前调用               |
+| `calls-failed`            | 失败调用总数           |
+| `calls-deadline-exceeded` | 超出截止时间的调用总数 |
+| `messages-sent`           | 发送的邮件总数         |
+| `messages-received`       | 收到的消息总数         |
+
+观察指标
+
+[dotnet-counters](https://docs.microsoft.com/zh-cn/dotnet/core/diagnostics/dotnet-counters) 是一个性能监视工具，用于临时运行状况监视和初级性能调查。 使用 `Grpc.AspNetCore.Server` 或 `Grpc.Net.Client` 作为提供程序名称监视 .NET 应用。
+
+```bash
+> dotnet-counters monitor --process-id 1902 Grpc.AspNetCore.Server
+
+Press p to pause, r to resume, q to quit.
+    Status: Running
+[Grpc.AspNetCore.Server]
+    Total Calls                                 300
+    Current Calls                               5
+    Total Calls Failed                          0
+    Total Calls Deadline Exceeded               0
+    Total Messages Sent                         295
+    Total Messages Received                     300
+    Total Calls Unimplemented                   0
+```
+
+[gRPC诊断](https://docs.microsoft.com/zh-cn/aspnet/core/grpc/diagnostics?view=aspnetcore-5.0)
+
+
+
+
+
+
+
+### gRPC HTTP API 与 gRPC-Web
+
+gRPC HTTP API 和 gRPC-Web 都支持从浏览器调用 gRPC 服务。 但是，它们的操作方式是不同的：
+
+- gRPC-Web 允许浏览器应用通过 gRPC-Web 客户端和 Protobuf 从浏览器调用 gRPC 服务。 gRPC-Web 需要浏览器应用生成 gRPC 客户端，并且具有快速发送小型 Protobuf 消息的优点。
+- gRPC HTTP API 允许浏览器应用调用 gRPC 服务，就像它们是使用 JSON 的 RESTful API 一样。 浏览器应用不需要生成 gRPC 客户端或了解 gRPC 的任何信息。
 
