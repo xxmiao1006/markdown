@@ -4156,7 +4156,7 @@ https://github.com/spring-projects/spring-boot/tree/master/spring-boot-samples
 
 
 
-
+[Spring Boot：通过spring-boot-starter-data-redis源码了解starter和autoconfigure模块](https://blog.csdn.net/yeyinglingfeng/article/details/87790700)
 
 
 
