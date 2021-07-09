@@ -350,3 +350,8 @@ private int expungeStaleEntry(int staleSlot) {
 }
 ```
 
+
+
+五.ThreadLocal, InheritableThreadLocal,TransmittableThreadLocal
+
+InheritableThreadLocal 可用于父子线程本地变量传递，但是有个问题是子线程copy父线程变量是发送在子线程创建的时候，所以如果使用线程池是无法每次都获取到父线程的本地变量的，TransmittableThreadLocal就是解决这个问题的
