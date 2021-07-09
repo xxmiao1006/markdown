@@ -1,7 +1,5 @@
 ## gRPC
 
-
-
 ### 一. protobuf管理参考
 
 可以手动添加引用的方式将proto文件引入项目，也可以使用`dotnet-grpc`.net core全局工具管理proto引用，这个工具可以用于添加、刷新、删除和列出 Protobuf 引用。
@@ -207,6 +205,123 @@ Updating content of Protos/greet.proto with content at http://52.131.224.115:100
 
 
 
+最佳实践推荐使用单独的git仓库来管理所有的proto文件，利用文件服务器或者git submodule的形式使用。客户端服务端通过远程引用来引用同一份proto通信协议，并且强制性确保所有proto文件向下兼容。
+
+关于proto文件管理具体请查看官网： [通过dotnet-grpc工具管理Protobuf参考](https://docs.microsoft.com/zh-cn/aspnet/core/grpc/dotnet-grpc?view=aspnetcore-5.0)
+
 
 
 ### 二. gRPC熔断重试
+
+​		gRPC 重试属于客户端重试， [Grpc.Net.Client](https://www.nuget.org/packages/Grpc.Net.Client) 2.36.0 或更高版本gRPC的客户端包内置了重试的功能。首先需要弄清楚什么样的，什么时候的重试才是有意义的：
+
+* 网络连接状况不好的情况重试，即只在故障是暂时性，以及在重新尝试后操作至少有一些成功的可能性时，才应重试操作。
+* 服务幂等，接口不幂等的情况下重试可能会发现不可预料的情况，而像get接口等获取数据的接口才建议配置重试策略。
+
+
+
+#### 配置 gRPC 重试策略
+
+下表描述了用于配置 gRPC 重试策略的选项：
+
+| 选项                   | 描述                                                         |
+| :--------------------- | :----------------------------------------------------------- |
+| `MaxAttempts`          | 最大调用尝试次数，包括原始尝试。 此值受 `GrpcChannelOptions.MaxRetryAttempts`（默认值为 5）的限制。 必须为该选项提供值，且值必须大于 1。 |
+| `InitialBackoff`       | 重试尝试之间的初始退避延迟。 介于 0 与当前退避之间的随机延迟确定何时进行下一次重试尝试。 每次尝试后，当前退避将乘以 `BackoffMultiplier`。 必须为该选项提供值，且值必须大于 0。 |
+| `MaxBackoff`           | 最大退避会限制指数退避增长的上限。 必须为该选项提供值，且值必须大于 0。 |
+| `BackoffMultiplier`    | 每次重试尝试后，退避将乘以该值，并将在乘数大于 1 的情况下以指数方式增加。 必须为该选项提供值，且值必须大于 0。 |
+| `RetryableStatusCodes` | 状态代码的集合。 具有匹配状态的失败 gRPC 调用将自动重试。 有关状态代码的更多信息，请参阅[状态代码及其在 gRPC 中的用法](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)。 至少需要提供一个可重试的状态代码。 |
+
+创建webAPI项目，引入Grpc.Net.Client包。在startup文件里面注入gRPC客户端，并加入以下配置
+
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddControllers();
+
+
+    var defaultMethodConfig = new MethodConfig
+    {
+        Names = { MethodName.Default },
+        RetryPolicy = new RetryPolicy
+        {
+            MaxAttempts = 5,
+            InitialBackoff = TimeSpan.FromSeconds(1),
+            MaxBackoff = TimeSpan.FromSeconds(5),
+            BackoffMultiplier = 1.5,
+            // StatusCode.DeadlineExceeded, StatusCode.Unavailable, 
+            RetryableStatusCodes = { StatusCode.Cancelled }
+        }
+    };
+
+
+    services.AddGrpcClient<Greeter.GreeterClient>(o =>
+         {
+               o.Address = new Uri("https://localhost:5001");
+         })
+        //配置超时取消令牌
+        .EnableCallContextPropagation()
+        .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
+        //配置取消https认证
+        .ConfigurePrimaryHttpMessageHandler(() =>
+         {
+             var handler = new HttpClientHandler();
+             handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+             return handler;
+         })
+        //配置重试
+        .ConfigureChannel(grpcChannelOptions =>
+        {
+             grpcChannelOptions.ServiceConfig = new ServiceConfig { MethodConfigs = { defaultMethodConfig } };
+         });
+
+}
+```
+
+注意上面`RetryPolicy`中的`RetryableStatusCodes`，这个属性声明了会进行重试的回复状态码，这里我将他改成了`Cancelled`,方便后面进行测试，一般情况下我们配置的是`Unavailable`，为了方便测试，在gRPC服务端实现了如下方法，声明了一个全局变量，在抛出三次RPC异常后才成功来测试我们的重试策略。代码如下
+
+```c#
+//private static Int32 _retryTime = 0;
+public override Task<TestRetryReply> TestRetry(TestRetryRequest request, ServerCallContext context)
+{
+    if (_retryTime <= 3)
+    {
+        _retryTime++;
+        //抛出Cancelled异常配合测试
+        throw new RpcException(Status.DefaultCancelled);
+    }
+    _retryTime--;
+    Console.WriteLine("请求重试次数-----------" + _retryTime);
+    return Task.FromResult(new TestRetryReply { Message = "testRetry success，retry times:" + _retryTime });
+}
+```
+
+客户端调用代码，就是一个简单的调用，重试策略在startup文件里面配置好，调用时和普通调用是一样的。
+
+```c#
+[HttpGet("TestRetry")]
+public ActionResult<string> TestRetry()
+{
+    var result = _client.TestRetry(new TestRetryRequest { });
+    return result.Message;
+}
+```
+
+调用结果,可以看的我们第一次调用失败，然后进行了三次重试，第四次重试返回了成功，
+
+![gRPC重试策略测试.png](http://ww1.sinaimg.cn/large/0072fULUgy1gsagdb26nvj60uu0mlq4g02.jpg)
+
+
+
+gRPC还有一种重试策略 hedging策略， hedging策略可以再不等待响应的情况下直接进行重试，所以使用这种策略必须保证服务方法是幂等的。
+
+总体来看的话gPRC要实现重试是非常方便的，但是提供的配置策略不够灵活，无法根据请求方法类型等进行更多维度的重试策略配置，如果需要生产级别使用的话还是推荐使用polly。
+
+gRPC重试策略具体请查看官方文档[暂时性故障处理](https://docs.microsoft.com/zh-cn/aspnet/core/grpc/retries?view=aspnetcore-5.0)
+
+
+
+
+
+
+
