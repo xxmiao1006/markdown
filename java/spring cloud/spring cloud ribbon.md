@@ -270,3 +270,13 @@ public interface ILoadBalancer {
 此时我们需要重新回到RibbonLoadBalancerClient类中继续看我们的execute方法的执行情况，在execute方法中，当获取到一个Server对象之后，将之包装成一个RibbonServer对象（从包装的过程我们可以发现，RibbonServer对象中保存了Server的所有信息，同时还保存了服务名serviceId、是否需要HTTPS等其他信息），然后再调用另一个重载的execute方法，在另一个重载的execute方法中最终调用到了LoadBalancerRequest中的apply方法，该方法向一个具体的服务实例发送请求，从而实现了从`http://服务名/hello`到`http://域名/hello`的转换。
 
 后续补充apply...
+
+
+
+
+
+Feign和Ribbon重试机制谁先重试谁后重试
+
+关于他们的调用逻辑是这样的：发起请求时，HystrixInvocationHandler（HystrixCommand 【hystrix】））----》SynchronousMethodHandler（feign）----》FeignLoadBalancer （ribbon）----》LoadBalancerFeignClient （ribbon），如果你读过我之前分享的内容，有类似这样的认识，这个方向是对的。也就是说RetryableFeignLoadBalancer（ribbon）会先进行重试，如果重试不成功（抛异常），SynchronousMethodHandler（feign）会再执行重试。
+
+

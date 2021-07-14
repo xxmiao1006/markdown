@@ -72,6 +72,7 @@ daemonize yes    #后台运行
 port 8001        #端口
 logfile 8001.log  #日志文件
 dir /usr/local/redis-cluster/8001   #数据文件路径
+slowlog-log-slower-than 10000
 #bind 192.168.250.129 127.0.0.1   #关掉指定 ip访问
 
 cluster-enabled yes    #启动集群模式
