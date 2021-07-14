@@ -280,3 +280,5 @@ Feign和Ribbon重试机制谁先重试谁后重试
 关于他们的调用逻辑是这样的：发起请求时，HystrixInvocationHandler（HystrixCommand 【hystrix】））----》SynchronousMethodHandler（feign）----》FeignLoadBalancer （ribbon）----》LoadBalancerFeignClient （ribbon），如果你读过我之前分享的内容，有类似这样的认识，这个方向是对的。也就是说RetryableFeignLoadBalancer（ribbon）会先进行重试，如果重试不成功（抛异常），SynchronousMethodHandler（feign）会再执行重试。
 
 
+[SpringCloud eureka 重试机制ribbon,熔断器Hystrix,简化远程调用Feign](https://blog.csdn.net/sinat_42338962/article/details/84869317)
+
