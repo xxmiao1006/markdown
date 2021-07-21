@@ -597,3 +597,5 @@ nohup java -jar -server -Xms1024M -Xmx1024M -Xss512k -XX:MetaspaceSize=256M -XX:
 
 [jmc使用](https://www.cnblogs.com/duanxz/p/8533174.html)
 
+[生产内存溢出,通过jprofiler对dump文件进行分析](https://www.pianshen.com/article/3692801140/)
+
