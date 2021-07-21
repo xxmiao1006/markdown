@@ -1057,6 +1057,18 @@ Block Nested-Loop Join  (BNL): 使用了join_buffer,join_buffer 的大小是由�
 
 ​		还会出现：1. 长期占用DML锁，引发DDL拿不到锁堵慢连接池； 2. SQL执行socket_timeout超时后业务接口重复发起，导致实例IO负载上升出现雪崩；3. 实例异常后，DBA kill SQL因繁杂的回滚执行时间过长，不能快速恢复可用；4. 如果业务采用select *作为结果集返回，极大可能出现网络拥堵，整体拖慢服务端的处理；5. 冷数据污染buffer pool，block nested-loop多次扫描，其中间隔很有可能超过1s，从而污染到lru 头部，影响整体的查询体验。
 
+
+
+BNLJ转BKA
+方案一：在被驱动表的join字段上添加索引，相当于BNLJ先转INLJ再转BKA。
+方案二：不适宜添加索引的情况（查询语句使用频率较低），引入临时表。具体操作步骤如下：
+   a. 先根据where过滤被驱动表t2，并将结果存入临时表tmp_t；
+   b. 在临时表上为join字段b添加索引；
+   c. 让驱动表t1连接临时表tmp_t。
+（注意，由于步骤b中需要为临时表创建索引，所以此方案当且仅当tmp_t规模远小于t2时才划算！
+
+
+
 ​		**join语句优化**
 
 ​		**Multi-Range Read 优化 (MRR)。这个优化的主要目的是尽量使用顺序读盘。**
@@ -1088,6 +1100,10 @@ MRR 能够提升性能的核心在于，这条查询语句在索引 a 上做的�
 ```sql
 set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 ```
+
+
+
+
 
 
 
