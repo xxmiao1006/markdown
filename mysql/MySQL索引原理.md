@@ -1067,6 +1067,9 @@ BNLJ转BKA
    c. 让驱动表t1连接临时表tmp_t。
 （注意，由于步骤b中需要为临时表创建索引，所以此方案当且仅当tmp_t规模远小于t2时才划算！
 
+mysql 8.0 hash-join
+可视为BNLJ进阶，将join_buffer变成Hash表
+
 
 
 ​		**join语句优化**
