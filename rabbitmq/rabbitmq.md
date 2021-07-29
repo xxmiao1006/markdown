@@ -209,3 +209,5 @@ Queue，一个Queue可以同多个Exchange进行绑定。
 
 [RabbitMQ-HA搭建-部署](https://blog.csdn.net/qq_37681291/article/details/81099318)
 
+[提升RabbitMQ消费速度的一些实践](https://www.cnblogs.com/bossma/p/practices-on-improving-the-speed-of-rabbitmq-consumption.html)
+

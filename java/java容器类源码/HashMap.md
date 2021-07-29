@@ -380,11 +380,11 @@ jdk1.7及以前扩容时采用的是头插法，这种方式插入速度快，�
 
 
 
+### java中byte数组不能作为map的key使用
 
+用byte数组作为map的key来使用,发现在遍历的时候get到之前传进去的值总是为空,很是困惑,后来查了下资料发现java中的字节数组不能直接作为map的key来使用. 原因是这样的,当使用`byte[]`作为key的时候,map会对这个字节数组的地址进行hashcode得到一个值作为key,而不是以内容作为它的key,所以两次byte数组地址不一样的话,得到的结果就会完全不同.
 
-
-
-
+[java中byte数组不能作为map的key使用](http://www.yangtaotech.cn/post/java_map_key.html)
 
 
 
