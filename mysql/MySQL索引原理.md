@@ -1534,6 +1534,236 @@ innodb_change_buffering	all --默认是all支持所有DML操作
 
 
 
+14.optimizer trace
+
+```sql
+
+set session optimizer_trace="enabled=on",end_markers_in_json=on; ‐‐ 开启trace 
+
+select * from t1 where b >= 2 and b < 8 and c > 1 and d != 4 and e != 'a';
+
+SELECT * FROM information_schema.OPTIMIZER_TRACE; 
+
+set session optimizer_trace="enabled=off"; ‐‐ 关闭trace
+
+
+```
+
+
+
+```json
+{
+  "steps": [
+    {
+      "join_preparation": {
+        "select#": 1,
+        "steps": [
+          {
+            "expanded_query": "/* select#1 */ select `t1`.`a` AS `a`,`t1`.`b` AS `b`,`t1`.`c` AS `c`,`t1`.`d` AS `d`,`t1`.`e` AS `e` from `t1` where ((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))"
+          }
+        ] /* steps */
+      } /* join_preparation */
+    },
+    {
+      "join_optimization": {
+        "select#": 1,
+        "steps": [
+          {
+            "condition_processing": {
+              "condition": "WHERE",
+              "original_condition": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))",
+              "steps": [
+                {
+                  "transformation": "equality_propagation",
+                  "resulting_condition": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))"
+                },
+                {
+                  "transformation": "constant_propagation",
+                  "resulting_condition": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))"
+                },
+                {
+                  "transformation": "trivial_condition_removal",
+                  "resulting_condition": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))"
+                }
+              ] /* steps */
+            } /* condition_processing */
+          },
+          {
+            "substitute_generated_columns": {
+            } /* substitute_generated_columns */
+          },
+          {
+            "table_dependencies": [
+              {
+                "table": "`t1`",
+                "row_may_be_null": false,
+                "map_bit": 0,
+                "depends_on_map_bits": [
+                ] /* depends_on_map_bits */
+              }
+            ] /* table_dependencies */
+          },
+          {
+            "ref_optimizer_key_uses": [
+            ] /* ref_optimizer_key_uses */
+          },
+          {
+            "rows_estimation": [
+              {
+                "table": "`t1`",
+                "range_analysis": {
+                  "table_scan": {
+                    "rows": 8,
+                    "cost": 4.7
+                  } /* table_scan */,
+                  "potential_range_indexes": [
+                    {
+                      "index": "PRIMARY",
+                      "usable": false,
+                      "cause": "not_applicable"
+                    },
+                    {
+                      "index": "idx_t1_bcd",
+                      "usable": true,
+                      "key_parts": [
+                        "b",
+                        "c",
+                        "d",
+                        "a"
+                      ] /* key_parts */
+                    }
+                  ] /* potential_range_indexes */,
+                  "setup_range_conditions": [
+                  ] /* setup_range_conditions */,
+                  "group_index_range": {
+                    "chosen": false,
+                    "cause": "not_group_by_or_distinct"
+                  } /* group_index_range */,
+                  "analyzing_range_alternatives": {
+                    "range_scan_alternatives": [
+                      {
+                        "index": "idx_t1_bcd",
+                        "ranges": [
+                          "2 <= b < 8"
+                        ] /* ranges */,
+                        "index_dives_for_eq_ranges": true,
+                        "rowid_ordered": false,
+                        "using_mrr": false,
+                        "index_only": false,
+                        "rows": 6,
+                        "cost": 8.21,
+                        "chosen": false,
+                        "cause": "cost"
+                      }
+                    ] /* range_scan_alternatives */,
+                    "analyzing_roworder_intersect": {
+                      "usable": false,
+                      "cause": "too_few_roworder_scans"
+                    } /* analyzing_roworder_intersect */
+                  } /* analyzing_range_alternatives */
+                } /* range_analysis */
+              }
+            ] /* rows_estimation */
+          },
+          {
+            "considered_execution_plans": [
+              {
+                "plan_prefix": [
+                ] /* plan_prefix */,
+                "table": "`t1`",
+                "best_access_path": {
+                  "considered_access_paths": [
+                    {
+                      "rows_to_scan": 8,
+                      "access_type": "scan",
+                      "resulting_rows": 8,
+                      "cost": 2.6,
+                      "chosen": true
+                    }
+                  ] /* considered_access_paths */
+                } /* best_access_path */,
+                "condition_filtering_pct": 100,
+                "rows_for_plan": 8,
+                "cost_for_plan": 2.6,
+                "chosen": true
+              }
+            ] /* considered_execution_plans */
+          },
+          {
+            "attaching_conditions_to_tables": {
+              "original_condition": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))",
+              "attached_conditions_computation": [
+              ] /* attached_conditions_computation */,
+              "attached_conditions_summary": [
+                {
+                  "table": "`t1`",
+                  "attached": "((`t1`.`b` >= 2) and (`t1`.`b` < 8) and (`t1`.`c` > 1) and (`t1`.`d` <> 4) and (`t1`.`e` <> 'a'))"
+                }
+              ] /* attached_conditions_summary */
+            } /* attaching_conditions_to_tables */
+          },
+          {
+            "refine_plan": [
+              {
+                "table": "`t1`"
+              }
+            ] /* refine_plan */
+          }
+        ] /* steps */
+      } /* join_optimization */
+    },
+    {
+      "join_execution": {
+        "select#": 1,
+        "steps": [
+        ] /* steps */
+      } /* join_execution */
+    }
+  ] /* steps */
+}
+
+```
+
+
+
+15.优化器选项 [优化器选项](https://juejin.cn/post/6887883686776307725#heading-10)
+
+```sql
+# 查看优化选项
+select @@optimizer_switch\G;
+
+*************************** 1. row ***************************
+@@optimizer_switch: index_merge=on,index_merge_union=on,index_merge_sort_union=on,index_merge_intersection=on,engine_condition_pushdown=on,index_condition_pushdown=on,mrr=on,mrr_cost_based=on,block_nested_loop=on,batched_key_access=off,materialization=on,semijoin=on,loosescan=on,firstmatch=on,duplicateweedout=on,subquery_materialization_cost_based=on,use_index_extensions=on,condition_fanout_filter=on,derived_merge=on
+1 row in set (0.01 sec)
+
+
+index_merge=on
+index_merge_union=on
+index_merge_sort_union=on
+index_merge_intersection=on
+engine_condition_pushdown=on
+index_condition_pushdown=on
+mrr=on
+mrr_cost_based=on
+block_nested_loop=on
+batched_key_access=off
+materialization=on
+semijoin=on
+loosescan=on
+firstmatch=on
+duplicateweedout=on
+subquery_materialization_cost_based=on
+use_index_extensions=on
+condition_fanout_filter=on
+derived_merge=on
+```
+
+
+
+
+
+
+
 
 
 [MySQL explain详解](https://zhuanlan.zhihu.com/p/114182767)
@@ -1571,6 +1801,10 @@ innodb_change_buffering	all --默认是all支持所有DML操作
 [mysql MDL读写锁阻塞，以及online ddl造成的“插队”现象](https://blog.csdn.net/q2878948/article/details/96430129)
 
 
+
+[mysql高级知识](https://blog.csdn.net/m0_37984616/article/details/81047676)
+
+[Mysql索引和优化工具](https://juejin.cn/post/6887883686776307725)
 
 
 
