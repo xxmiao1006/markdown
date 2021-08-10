@@ -21,7 +21,10 @@
 
 1. Xhub    springboot+springcloud+redis+mysql+rabbitmq+nginx
 
-- 这个是目前现在还在开发的项目，主要是负责我们平台所有iot、资产、空间等的管理，同时管理数据通道。
+- 数据源连接管理
+- 产品标准库管理
+- 数据源档案管理
+- 安全开发
 
 
 
