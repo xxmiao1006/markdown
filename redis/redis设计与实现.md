@@ -394,21 +394,22 @@ typedef struct zlentry {
 #define REDIS_LRU_BITS 24
 #define REDIS_LRU_CLOCK_MAX ((1<<REDIS_LRU_BITS)-1) /* Max value of obj->lru */
 #define REDIS_LRU_CLOCK_RESOLUTION 1000 /* LRU clock resolution in ms */
+//0.5+0.5+3+8=16字节  即redisObject固定占16个字节
 typedef struct redisObject {
 
     // 类型
-    unsigned type:4;
+    unsigned type:4; //4位  0.5字节
 
     // 编码
-    unsigned encoding:4;
+    unsigned encoding:4; //4位  0.5字节
 
     // 对象最后一次被访问的时间
-    unsigned lru:REDIS_LRU_BITS; /* lru time (relative to server.lruclock) */
+    unsigned lru:REDIS_LRU_BITS; /* lru time (relative to server.lruclock) 24位 3字节 */
 
     // 引用计数
-    int refcount;
+    int refcount; //32位  4字节
 
-    // 指向实际值的指针
+    // 指向实际值的指针  如sds等  8字节
     void *ptr;
 
 } robj;
@@ -441,14 +442,29 @@ typedef struct redisObject {
 ​		字符串对象的编码可以是`int`,`raw`,或者`embstr`
 
 * 如果一个字符串对象保存的是整数值，并且这个整数值可以用long类型来表示，那么字符串对象的编码会设置为`int`；
-
 * 如果一个字符串对象保存的是一个字符串值，并且这个字符串值的长度大于32字节，那么字符串对象会使用SDS来保存这个字符串，并将对象的编码设置为`raw`；
-
 * 如果一个字符串对象保存的是一个字符串值，并且这个字符串值得长度小于32字节，那么字符串对象会使用`embstr`编码的方式来保存这个字符串的值。
+
+> - `int` 编码
+>   当我们用字符串对象存储的是整型，且能用 `8` 个字节的 `long` 类型进行表示（即 `2` 的 `63` 次方减 `1`），则 `Redis` 会选择使用 `int` 编码来存储，此时 `redisObject` 对象中的 `ptr` 指针直接替换为 `long` 类型。我们想想 `8` 个字节如果用字符串来存储只能存 `8` 位，也就是千万级别的数字，远远达不到 `2` 的 `63` 次方减 `1` 这个级别，所以如果都是数字，用 `long` 类型会更节省空间。
+> - `embstr` 编码
+>   当字符串对象中存储的是字符串，且长度小于 `44` （`Redis 3.2` 版本之前是 `39`）时，`Redis` 会选择使用 `embstr` 编码来存储。
+> - `raw` 编码
+>   当字符串对象中存储的是字符串，且长度大于 `44` 时，`Redis` 会选择使用 `raw` 编码来存储。
+>
+> ### embstr 编码为什么从 39 位修改为 44 位
+>
+> `embstr` 编码中，`redisObject` 和 `sds` 是连续的一块内存空间，这块内存空间 `Redis` 限制为了 `64` 个字节，而`redisObject` 固定占了16字节（上面定义中有标注），`Redis 3.2` 版本之前的 `sds` 占了 `8` 个字节，再加上字符串末尾 `\0` 占用了 `1` 个字节，所以：`64-16-8-1=39` 字节。
+>
+> `Redis 3.2` 版本之后 `sds` 做了优化，对于 `embstr` 编码会采用 `sdshdr8` 来存储，而 `sdshdr8` 占用的空间只有 `24` 位：`3` 字节（len+alloc+flag）+ `\0` 字符（1字节），所以最后就剩下了：`64-16-3-1=44` 字节。
 
 ​		embstr编码是专门用于保存短字符串的一种编码，它的底层实现和`raw`一样，都是使用redisObject结构和sdshdr结构来表示字符串对象，但不一样的是row编码会调用两次内存分配函数来分别创建redisObject和sdshdr结构，而embstr编码则通过调用一次内存分配函数来分配一块连续的空间，空间中依次包含redisObject和sdshdr两个结构（内存释放的时候同样如此）。还有要注意的是，**给embstr编码的字符串作修改操作时，会转变成`raw`编码，相当于embstr编码是只读的，因为Redis没有为embstr编码的字符串对象编写任何相应的修改程序**
 
 ​		同样，如果我们对int编码的字符串对象执行一些修改使得这个对象保存的不再是long类型的值，也会转为`raw`编码。
+
+> ### embstr 编码和 raw 编码的区别
+>
+> `embstr` 编码是一种优化的存储方式，其在申请空间的时候因为 `redisObject` 和 `sds` 两个对象是一个连续空间，所以**「只需要申请 `1` 次空间（同样的，释放内存也只需要 `1` 次）」**，而 `raw` 编码因为 `redisObject` 和 `sds` 两个对象的空间是不连续的，所以使用的时候**「需要申请 `2` 次空间（同样的，释放内存也需要 `2` 次）」**。但是使用 `embstr` 编码时，假如需要修改字符串，那么因为 `redisObject` 和 `sds` 是在一起的，所以两个对象都需要重新申请空间，为了避免这种情况发生，**「`embstr` 编码的字符串是只读的，不允许修改」**。
 
 
 
