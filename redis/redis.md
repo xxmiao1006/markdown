@@ -2683,6 +2683,139 @@ min-slaves-max-lag：这个配置项设置了主从库间进行数据复制时�
 
 
 
+## redis info命令
+
+```bash
+# Server
+redis_version:3.2.3                  # Redis 的版本
+redis_git_sha1:00000000              # Redis 的版本
+redis_git_dirty:0
+redis_build_id:9e93d0c7997bcfef
+redis_mode:standalone                # 运行模式：单机（集群）
+os:Linux 2.6.32-431.el6.x86_64 x86_64 # 操作系统
+arch_bits:64                          # 操作系统位数
+multiplexing_api:epoll               # redis所使用的事件处理机制
+gcc_version:4.4.7                    # gcc版本号
+process_id:1606                      # 当前 Redis 服务器进程id
+run_id:17e79b1966f1f891eff203a8e496151ee8a3a7a7
+tcp_port:7001                        # 端口号
+uptime_in_seconds:4360189            # 运行时间(秒)
+uptime_in_days:50                    # 运行时间(天)
+hz:10                                # redis内部调度（进行关闭timeout的客户端，删除过期key等等）频率，程序规定serverCron每秒运行10次。
+lru_clock:5070330                    # Redis的逻辑时钟
+executable:/usr/local/bin/redis-server          # 启动脚本路径
+config_file:/opt/redis3/conf/redis_7001.conf    # 启动指定的配置文件路径
+
+# Clients
+connected_clients:660                # 连接的客户端数量
+client_longest_output_list:0         # 当前连接的客户端当中，最长的输出列表
+client_biggest_input_buf:0           # 当前连接的客户端当中，最大输入缓存
+blocked_clients:0                    # 阻塞的客户端数量
+
+# Memory
+used_memory:945408832               # 使用内存（B）
+used_memory_human:901.61M           # 使用内存（MB）  
+used_memory_rss:1148919808          # 系统给redis分配的内存（即常驻内存），这个值和top命令的输出一致
+used_memory_rss_human:1.07G
+used_memory_peak:1162079480         # 内存使用的峰值
+used_memory_peak_human:1.08G        
+total_system_memory:6136483840      # 整个系统内存
+total_system_memory_human:5.72G
+used_memory_lua:122880              # Lua脚本存储占用的内存
+used_memory_lua_human:120.00K       
+maxmemory:2147483648                # Redis实例的最大内存配置
+maxmemory_human:2.00G
+maxmemory_policy:allkeys-lru        # 当达到maxmemory时的淘汰策略
+mem_fragmentation_ratio:1.22        # used_memory_rss/used_memory的比例。一般情况下，used_memory_rss略高于used_memory，当内存碎片较多时，则mem_fragmentation_ratio会较大，可以反映内存碎片是否很多
+mem_allocator:jemalloc-4.0.3        # 内存分配器
+
+# Persistence   
+loading:0                                 # 服务器是否正在载入持久化文件
+rdb_changes_since_last_save:82423954      # 离最近一次成功生成rdb文件，写入命令的个数                      
+rdb_bgsave_in_progress:0                  # 服务器是否正在创建rdb文件           
+rdb_last_save_time:1560991229             # 最近一次成功rdb文件的时间戳               
+rdb_last_bgsave_status:ok                 # 最近一次成功rdb文件的状态           
+rdb_last_bgsave_time_sec:-1               # 最近一次成功rdb文件的耗时            
+rdb_current_bgsave_time_sec:-1            # 若当前正在创建rdb文件，指当前的创建操作已经耗费的时间                
+aof_enabled:0                             # aof是否开启
+aof_rewrite_in_progress:0                 # aof的rewrite操作是否在进行中            
+aof_rewrite_scheduled:0                   # rewrite任务计划，当客户端发送bgrewriteaof指令，如果当前rewrite子进程正在执行，那么将客户端请求的bgrewriteaof变为计划任务，待aof子进程结束后执行rewrite        
+aof_last_rewrite_time_sec:-1              # 最近一次aof rewrite耗费时长              
+aof_current_rewrite_time_sec:-1           # 若当前正在执行aof rewrite，指当前的已经耗费的时间                
+aof_last_bgrewrite_status:ok              # 最近一次aof bgrewrite的状态         
+aof_last_write_status:ok                  # 最近一次aof写入状态  
+
+# 开启aof后增加的一些info信息
+-----------------------------  
+aof_current_size:0                 # aof当前大小
+aof_base_size:0                    # aof上次启动或rewrite的大小
+aof_pending_rewrite:0              # 同上面的aof_rewrite_scheduled
+aof_buffer_length:0                # aof buffer的大小
+aof_rewrite_buffer_length:0        # aof rewrite buffer的大小
+aof_pending_bio_fsync:0            # 后台IO队列中等待fsync任务的个数
+aof_delayed_fsync:0                # 延迟的fsync计数器 
+-----------------------------           
+
+# Stats
+total_connections_received:15815        # 自启动起连接过的总数。如果连接过多，说明短连接严重或连接池使用有问题，需调研代码的连接设置
+total_commands_processed:502953838      # 自启动起运行命令的总数
+instantaneous_ops_per_sec:7             # 每秒执行的命令数，相当于QPS
+total_net_input_bytes:532510481889      # 网络入口流量字节数
+total_net_output_bytes:1571444057940    # 网络出口流量字节数
+instantaneous_input_kbps:0.37           # 网络入口kps
+instantaneous_output_kbps:0.59          # 网络出口kps
+rejected_connections:0                  # 拒绝的连接个数，由于maxclients限制，拒绝新连接的个数
+sync_full:1                             # 主从完全同步成功次数
+sync_partial_ok:0                       # 主从部分同步成功次数
+sync_partial_err:0                      # 主从部分同步失败次数
+expired_keys:4404930                    # 自启动起过期的key的总数
+evicted_keys:0                          # 使用内存大于maxmemory后，淘汰的key的总数
+keyspace_hits:337104556                 # 在main dictionary字典中成功查到的key个数
+keyspace_misses:22865229                # 同上，未命中的key的个数
+pubsub_channels:1                       # 发布/订阅频道数
+pubsub_patterns:0                       # 发布/订阅模式数
+latest_fork_usec:707                    # 上次的fork操作使用的时间（单位ms）
+migrate_cached_sockets:0                # 是否已经缓存了到该地址的连接
+slave_expires_tracked_keys:0            # 从实例到期key数量
+active_defrag_hits:0                    # 主动碎片整理命中次数
+active_defrag_misses:0                  # 主动碎片整理未命中次数
+active_defrag_key_hits:0                # 主动碎片整理key命中次数
+active_defrag_key_misses:0              # 主动碎片整理key未命中次数
+
+
+# Replication
+role:master                           # 当前实例的角色master还是slave
+connected_slaves:1                    # slave的数量
+master_replid:8f81c045a2cb00f16a7fc5c90a95e02127413bcc      # 主实例启动随机字符串
+master_replid2:0000000000000000000000000000000000000000     # 主实例启动随机字符串2
+slave0:ip=172.17.12.251,port=7002,state=online,offset=506247209326,lag=1    # slave机器的信息、状态
+master_repl_offset:506247209478       # 主从同步偏移量,此值如果和上面的offset相同说明主从一致没延迟，与master_replid可被用来标识主实例复制流中的位置。
+second_repl_offset                    # 主从同步偏移量2,此值如果和上面的offset相同说明主从一致没延迟
+repl_backlog_active:1                 # 复制缓冲区是否开启
+repl_backlog_size:157286400           # 复制缓冲区大小
+repl_backlog_first_byte_offset:506089923079     # 复制缓冲区里偏移量的大小
+repl_backlog_histlen:157286400        # 此值等于 master_repl_offset - repl_backlog_first_byte_offset,该值不会超过repl_backlog_size的大小
+
+# CPU
+used_cpu_sys:6834.06                  # 将所有redis主进程在核心态所占用的CPU时求和累计起来
+used_cpu_user:8282.10                 # 将所有redis主进程在用户态所占用的CPU时求和累计起来
+used_cpu_sys_children:0.11            # 后台进程的核心态cpu使用率
+used_cpu_user_children:0.91           # 后台进程的用户态cpu使用率
+
+# Cluster
+cluster_enabled:0       # 实例是否启用集群模式
+
+# Keyspace      # 各个数据库（0-15）的 key 的数量，带有生存期的 key 的数量，平均存活时间
+db0:keys=267906,expires=109608,avg_ttl=3426011859194
+db1:keys=182,expires=179,avg_ttl=503527626
+db8:keys=6,expires=0,avg_ttl=0
+db15:keys=2,expires=0,avg_ttl=0
+```
+
+
+
+
+
 
 
 [如何优雅地用Redis实现分布式锁](https://baijiahao.baidu.com/s?id=1623086259657780069&wfr=spider&for=pc)
