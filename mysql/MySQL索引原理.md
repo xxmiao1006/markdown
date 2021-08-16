@@ -1823,3 +1823,5 @@ derived_merge=on
 
 [MySQL innodb引擎的事务执行过程](http://blog.itpub.net/29654823/viewspace-2153187/)
 
+[show engine innodb status解读](https://blog.csdn.net/wzx8731/article/details/105862295/)
+
