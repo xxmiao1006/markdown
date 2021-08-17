@@ -1103,7 +1103,7 @@ mysql 8.0 hash-join
 
 * 排序后的 id 数组，依次到主键 id 索引中查记录，并作为结果返回。
 
-这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）
+这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，设置`set optimizer_switch="mrr_cost_based=off"`。**（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）**
 
 ```sql
 set optimizer_switch="mrr_cost_based=on/off"
@@ -1292,6 +1292,29 @@ concat(round(sum(DATA_LENGTH/ 1024),2),'M')ASsize
 FROM information_schema.TABLES
 
 WHERE table_schema= '数据库名'AND table_name= '表名';
+-- 数据长度，索引长度
+SELECT
+concat(round(sum(DATA_LENGTH/ 1024/1024),2),'M')ASsize,
+concat(round(sum(INDEX_LENGTH/ 1024/1024),2),'M')ISsize
+FROM information_schema.TABLES
+WHERE table_schema= 'zuihou_extend_0000'AND table_name= 't_twin_property';
+
+
+
+/*单个表每个索引的大小*/
+SELECT
+       sum(stat_value) pages,
+       table_name part,
+       index_name,
+       concat(round(sum(stat_value)/1000000,2),'M',' rows') * @@innodb_page_size size
+FROM
+       mysql.innodb_index_stats
+WHERE
+           table_name = '你的表名'
+       AND database_name = '你的数据库名'
+       AND stat_description LIKE 'Number of pages in the index'
+GROUP BY
+       table_name, index_name;
 
 ```
 
