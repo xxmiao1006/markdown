@@ -601,6 +601,19 @@ SHOW PROFILES;
 
 ​					MRR：回表操作时通过id回表，但是id不一定是有序的，可能产生随机读，可以先将id排序，在回表查询，一般我们可以认为，如果按照主键的递增顺序查询的话，对磁盘的读比较接近顺序读
 
+```sql
+--eg  idx_proper_name_value
+explain
+-- Using index condition
+select * from  t_twin_property p where p.property_name like 'stack%'  and p.value = '1'; 
+set optimizer_switch="mrr_cost_based=off"
+
+explain
+-- Using index condition; Using MRR
+select * from  t_twin_property p where p.property_name like 'stack%'  and p.value = '1'; 
+
+```
+
 
 
 #### 7.MyISAM存储引擎键的长度
@@ -1052,6 +1065,8 @@ Block Nested-Loop Join  (BNL): 使用了join_buffer,join_buffer 的大小是由�
 如果使用 Block Nested-Loop Join 算法，扫描行数就会过多。尤其是在大表上的 join 操作，这样可能要扫描被驱动表很多次，会占用大量的系统资源。所以这种 join 尽量不要用。
 
 所以你在判断要不要使用 join 语句时，就是看 explain 结果里面，Extra 字段里面有没有出现“Block Nested Loop”字样。
+
+**在决定哪个表做驱动表的时候，应该是两个表按照各自的条件过滤，过滤完成之后，计算参与 join 的各个字段的总数据量，数据量小的那个表，就是“小表”，应该作为驱动表。**
 
 ​		驱动表分段很容易导致innodb的buffer poor将热数据移除加载冷数据，导致Buffer pool hit rate命中率极低，其他请求需要读磁盘，因此系统响应变慢，大部分请求阻塞。
 
