@@ -1906,7 +1906,7 @@ derived_merge=on
 
 
 
-16.使用ibd文件恢复数据
+16.使用ibd文件恢复数据 [拷贝ibd实现MySQL的数据导入](https://cloud.tencent.com/developer/article/1508863)
 
 > 拷贝数据文件+拷贝表空间   对应innodb引擎就是 ibd文件和cfg文件
 
