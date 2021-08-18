@@ -1908,6 +1908,8 @@ derived_merge=on
 
 16.使用ibd文件恢复数据
 
+> 拷贝数据文件+拷贝表空间   对应innodb引擎就是 ibd文件和cfg文件
+
 ```sql
 -- 源 
 FLUSH TABLE b_device FOR EXPORT;   -- 此时，源MySQL有了first.cfg文件
