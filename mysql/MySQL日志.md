@@ -104,6 +104,15 @@ select count(1) from table1; -- 测试数据是否正常
 
 
 
+ ```sql
+ show variables like '%expire%';
+ binlog_expire_logs_seconds	2592000
+ ```
+
+
+
+
+
 ### general log
 
 开启 general log 将所有到达MySQL Server的SQL语句记录下来。

@@ -180,6 +180,10 @@ MyISAM的索引方式也叫做“非聚集”的，之所以这么称呼是为�
 
 ​		了解不同存储引擎的索引实现方式对于正确使用和优化索引都非常有帮助，例如知道了InnoDB的索引实现后，就很容易明白为什么**不建议使用过长的字段作为主键，因为所有辅助索引都引用主索引，过长的主索引会令辅助索引变得过大。再例如，用非单调的字段作为主键在InnoDB中不是个好主意，因为InnoDB数据文件本身是一颗B+Tree，非单调的主键会造成在插入新记录时数据文件为了维持B+Tree的特性而频繁的分裂调整，十分低效，而使用自增字段作为主键则是一个很好的选择。**
 
+​		mysql8.0之前每个表有.ibd和.frm文件，一个存储数据，一个存储表定义，8.0之后只有.ibd文件，表定义存储在了系统表空间ibdata和mysql.ibd
+
+> 我不是在解析ibdata，而是在解析mysql.ibd。为什么呢？因为数据字典从ibdata移出，现在位于mysql.ibd中。
+
 
 
 ### 四. 最左索引匹配原则
@@ -1261,17 +1265,96 @@ MySQL 5.6 版本以后，创建索引都支持 Online DDL 了，对于那种高�
 
 
 
+31.MySQL-Innodb统计
+
+`innodb_table_stats`对整个库中所有innodb表进行统计
+
+```bash
+mysql> desc innodb_table_stats;
++--------------------------+---------------------+------+-----+-------------------+-----------------------------+
+| Field                    | Type                | Null | Key | Default           | Extra                       |
++--------------------------+---------------------+------+-----+-------------------+-----------------------------+
+| database_name            | varchar(64)         | NO   | PRI | NULL              |                             |
+| table_name               | varchar(64)         | NO   | PRI | NULL              |                             |
+| last_update              | timestamp           | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
+| n_rows                   | bigint(20) unsigned | NO   |     | NULL              |                             |
+| clustered_index_size     | bigint(20) unsigned | NO   |     | NULL              |                             |
+| sum_of_other_index_sizes | bigint(20) unsigned | NO   |     | NULL              |                             |
++--------------------------+---------------------+------+-----+-------------------+-----------------------------+
+6 rows in set (0.00 sec)
+```
+
+> 字段详解
+> database_name 数据库名
+> table_name 表名
+> last_update 最后一次更新时间
+> n_rows 表中总有多少列数据
+> clustered_index_size 聚集索引大小(数据页)
+> sum_of_other_index_sizes 其他索引大小(数据页)
+>
+> 数据详解
+> select @@innodb_page_size;
+> 默认为16K
+> clustered_index_size  为2590
+> 聚集索引所需磁盘空间为2590 x innodb_page_size/1024=41M
+> 其他索引所需磁盘空间为2924 x innodb_page_size/1024=46M
 
 
 
+`innodb_index_stats`对innodb中所有索引进行统计
 
+```bash
+mysql> desc innodb_index_stats;
++------------------+---------------------+------+-----+-------------------+-----------------------------+
+| Field            | Type                | Null | Key | Default           | Extra                       |
++------------------+---------------------+------+-----+-------------------+-----------------------------+
+| database_name    | varchar(64)         | NO   | PRI | NULL              |                             |
+| table_name       | varchar(64)         | NO   | PRI | NULL              |                             |
+| index_name       | varchar(64)         | NO   | PRI | NULL              |                             |
+| last_update      | timestamp           | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
+| stat_name        | varchar(64)         | NO   | PRI | NULL              |                             |
+| stat_value       | bigint(20) unsigned | NO   |     | NULL              |                             |
+| sample_size      | bigint(20) unsigned | YES  |     | NULL              |                             |
+| stat_description | varchar(1024)       | NO   |     | NULL              |                             |
++------------------+---------------------+------+-----+-------------------+-----------------------------+
+8 rows in set (0.00 sec)
+```
 
+> 字段详解
+> database_name 数据库名
+> table_name  表名
+> index_name 索引名
+> last_update 最后一次更新时间
+> stat_name 统计名
+> stat_value 统计值
+> sample_size 样本大小
+> stat_description 统计说明-索引对应的字段名
+>
 
+```bash
+mysql> select * from innodb_index_stats order by stat_value desc;
++-------------------+---------------------------+--------------------------------+---------------------+--------------+------------+-------------+-----------------------------------+
+| database_name     | table_name                | index_name                     | last_update         | stat_name    | stat_value | sample_size | stat_description                  |
++-------------------+---------------------------+--------------------------------+---------------------+--------------+------------+-------------+-----------------------------------+
+| sonar             | issues                    | issues_severity                | 2016-06-13 17:51:10 | n_diff_pfx02 |     118618 |          20 | severity,id                       |
+| sonar             | issues                    | issues_resolution              | 2016-06-13 17:51:10 | n_diff_pfx02 |     118508 |          20 | resolution,id                     |
+| sonar             | issues                    | issues_action_plan_key         | 2016-06-13 17:51:10 | n_diff_pfx02 |     118416 |          20 | action_plan_key,id                |
+| sonar             | issues                    | issues_creation_date           | 2016-06-13 17:51:10 | n_diff_pfx02 |     118244 |          20 | issue_creation_date,id            |
+| sonar             | issues                    | PRIMARY                        | 2016-06-13 17:51:10 | n_diff_pfx01 |     117017 |          20 | id                                |
+| sonar             | issues                    | issues_assignee                | 2016-06-13 17:51:10 | n_diff_pfx02 |     116678 |          20 | assignee,id                       |
+| sonar             | issues                    | issues_status                  | 2016-06-13 17:51:10 | n_diff_pfx02 |     115722 |          20 | status,id                         |
+| sonar             | issues                    | issues_rule_id                 | 2016-06-13 17:51:10 | n_diff_pfx02 |     115692 |          20 | rule_id,id                        |
+| sonar             | issues                    | issues_project_uuid            | 2016-06-13 17:51:10 | n_diff_pfx02 |     115544 |          20 | project_uuid,id                   |
+| sonar             | issues                    | issues_updated_at              | 2016-06-13 17:51:10 | n_diff_pfx02 |     112466 |          20 | updated_at,id                     |
+| sonar             | issues                    | issues_kee                     | 2016-06-13 17:51:10 | n_diff_pfx01 |     107901 |          20 | kee                               |
+| sonar             | issues                    | issues_component_uuid          | 2016-06-13 17:51:10 | n_diff_pfx02 |     105440 |          20 | component_uuid,id                 |
+| sonar             | project_measures          | measures_sid_metric            | 2016-06-15 03:34:26 | n_diff_pfx03 |      95257 |          20 | snapshot_id,metric_id,id          |
+| sonar             | project_measures          | PRIMARY                        | 2016-06-15 03:34:26 | n_diff_pfx01 |      93801 |          20 | id                                |
+```
 
-
-
-
-
+> 数据详解
+> stat_name 中n_diff_pfx02表示有两列在索引，具体列为stat_description中的severity,id
+> stat_value值为118618，表示severity,id两列中有severity,id不一样的值。
 
 
 
@@ -1292,7 +1375,7 @@ concat(round(sum(DATA_LENGTH/ 1024),2),'M')ASsize
 FROM information_schema.TABLES
 
 WHERE table_schema= '数据库名'AND table_name= '表名';
--- 数据长度，索引长度
+-- 数据长度（聚簇索引），索引长度（非聚簇索引）
 SELECT
 concat(round(sum(DATA_LENGTH/ 1024/1024),2),'M')ASsize,
 concat(round(sum(INDEX_LENGTH/ 1024/1024),2),'M')ISsize
@@ -1315,6 +1398,20 @@ WHERE
        AND stat_description LIKE 'Number of pages in the index'
 GROUP BY
        table_name, index_name;
+       
+       
+--修改版本 感觉整个更准确
+SELECT
+       stat_value pages,
+       table_name part,
+       index_name,
+       concat(round(stat_value*16/1024,2),'M',' rows')  size
+FROM
+       mysql.innodb_index_stats
+WHERE
+           table_name = 't_twin_property'
+       AND database_name = 'zuihou_extend_0000'
+       AND stat_name = 'size'
 
 ```
 
@@ -1808,6 +1905,24 @@ derived_merge=on
 ```
 
 
+
+16.使用ibd文件恢复数据
+
+```sql
+-- 源 
+FLUSH TABLE b_device FOR EXPORT;   -- 此时，源MySQL有了first.cfg文件
+--拷贝.ibd和cfg文件到目标
+--解锁
+UNLOCK tables;
+
+-- 1.丢弃新创建的表的表空间。 操作完后可以去看数据目录该表对应的ibd文件已经没有了
+ALTER TABLE b_device DISCARD TABLESPACE;
+-- 2.复制要恢复的数据文件ibd到数据目录下
+-- 3.导入孤立的ibd文件，确保.ibd文件有必要的文件权限
+ALTER TABLE b_device IMPORT TABLESPACE;SHOW WARNINGS;
+
+
+```
 
 
 
