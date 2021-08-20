@@ -315,7 +315,7 @@ public class InsertData {
 >
 > 但是如果自旋的时间太长也不行，因为自旋是要消耗CPU的，因此自旋的次数是有限制的，比如10次或者100次，如果自旋次数到了线程1还没有释放锁，或者线程1还在执行，线程2还在自旋等待，这时又有一个线程3过来竞争这个锁对象，那么这个时候轻量级锁就会膨胀为重量级锁。重量级锁把除了拥有锁的线程都阻塞，防止CPU空转。
 >
-> （轻量级锁升级成重量级锁的第一种时机：自选次数超过一定次数），如果B线程在自选的过程中，又来了一个线程C来竞争该锁，那么此时直接轻量级锁膨胀成重量级锁（轻量级锁升级成重量级锁的第二种时机：有两个以上的线程在竞争同一个锁。
+> （轻量级锁升级成重量级锁的第一种时机：自选次数超过一定次数 10次），如果B线程在自选的过程中，又来了一个线程C来竞争该锁，那么此时直接轻量级锁膨胀成重量级锁（轻量级锁升级成重量级锁的第二种时机：有两个以上的线程在竞争同一个锁（线程数超过cpu核数的一半）。
 
 
 
@@ -342,3 +342,8 @@ public class InsertData {
 [面试官：说一下Synchronized底层实现，锁升级的具体过程？](https://blog.csdn.net/zzti_erlie/article/details/103997713)
 
 [一文看懂java的锁机制](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247506603&idx=2&sn=0f4e992225efce985964d3db8a40663f&chksm=ebd5e587dca26c91354e973fe02cf5b046fc5355b5ce836273eeee7da2a8be98a295b6cbce96&mpshare=1&scene=24&srcid=0507l5Z8nENWvtb5xuzKbCr2&sharer_sharetime=1620359679805&sharer_shareid=232a5434dda7f9bc9ee0a06a8085ff95#rd)
+
+
+
+[Java偏向锁/轻量级锁/重量级锁及锁的升级](https://blog.csdn.net/qq_34039868/article/details/104698107)
+

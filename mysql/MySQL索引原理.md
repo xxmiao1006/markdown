@@ -1265,7 +1265,7 @@ MySQL 5.6 版本以后，创建索引都支持 Online DDL 了，对于那种高�
 
 
 
-31.MySQL-Innodb统计
+#### 31.MySQL-Innodb统计
 
 `innodb_table_stats`对整个库中所有innodb表进行统计
 
@@ -1355,6 +1355,22 @@ mysql> select * from innodb_index_stats order by stat_value desc;
 > 数据详解
 > stat_name 中n_diff_pfx02表示有两列在索引，具体列为stat_description中的severity,id
 > stat_value值为118618，表示severity,id两列中有severity,id不一样的值。
+
+
+
+
+
+32.大表数据分页查询优化
+
+```sql
+-- 500W数据表
+SELECT * FROM `t_twin_property` LIMIT 3000000,10 -- 1.7S左右
+
+select * from t_twin_property where id in (select t.id from (SELECT * FROM `t_twin_property` LIMIT 3000000,10)as t)-- 1.6S左右
+
+select  a.* from  t_twin_property a,(SELECT id FROM `t_twin_property` LIMIT 3000000,10) b WHERE a.id = b.id--0.4S左右
+
+```
 
 
 
