@@ -4,9 +4,9 @@
 
 * 熟悉 JAVA 集合,多线程,面向对象等基础知识。
 * 掌握常用的计算机网络和操作系统基础知识。
-* 熟悉JVM，熟悉常用的GC算法和垃圾收集器。有JVM调优经验
+* 熟悉JVM，熟悉常用的GC算法和垃圾收集器。有JVM参数优化经验
 * 熟悉springboot和spring cloud alibaba，有分布式微服务开发经验。
-* 熟悉mysql,对mysql有一定的研究，有过mysql服务优化和sql调优经验。
+* 熟悉mysql,对mysql有一定的研究，有sql优化经验。
 * 熟悉其他常用中间件比如rabbitmq、redis。参与了系统缓存模块的构建。
 * 有云原生开发经验。
 
