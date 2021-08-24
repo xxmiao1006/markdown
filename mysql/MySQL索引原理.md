@@ -1360,7 +1360,7 @@ mysql> select * from innodb_index_stats order by stat_value desc;
 
 
 
-32.大表数据分页查询优化
+#### 32.大表数据分页查询优化
 
 ```sql
 -- 500W数据表

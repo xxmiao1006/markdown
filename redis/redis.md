@@ -2982,7 +2982,13 @@ Redis 的作者提出一种解决方案，就是我们经常听到的 **Redlock�
 
 
 
+落地的使用是有什么问题？
 
+1.尽量选择合适的数据结构，避免全部使用String  使用String会浪费大量的内存存储元数据（RedisObject）。
+
+2.尽量避免bigkey的问题，避免大集合key，如果有 使用scan命令去遍历，不要使用key*  不然很容易造成redis阻塞。
+
+3.需要批量获取key的时候，不要循环，String类型可以使用mget,Hash可以使用Hmget,其他可以。使用pipeline批量获取，可以节省大量网络往返的开销。
 
 
 
