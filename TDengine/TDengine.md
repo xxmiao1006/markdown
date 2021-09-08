@@ -737,3 +737,93 @@ TODO LIST
 
 * TDengine集群搭建
 * TDengine高性能写入组件开发
+
+
+
+
+
+超级表：
+多列存储模式  （效率高，不够灵活，需要在初期就确定设备类型的采集物理量和频率）
+ 1.同时采集同表：一张超级表里，包含的采集物理量必须是同时采集的，也就是说时间戳都是相同的
+ 2.对同一个类型的设备，可能存在多组物理量，且每组的物理量并不是同时采集的，则需要为每组物理量单独建立一个超级表，因此一个类型的设备，可能需要建立多个超级表
+ 3.系统有N个类型的设备，就至少需要建立N个超级表
+ 4.一个系统可以有多个DB库，一个DB库可以有多个超级表
+
+ 比如一个采集终端采集的参数包括电流、电压、环境温度、湿度。电流电压5S采集一次，温度湿度1min采集一次，可以创建两个超级表 meter_power(电流、电压)、meter_temper(温度、湿度)
+
+单列存储模式 （插入和存储效率没有多列存储高，需要创建非常多的表，但更灵活，后期可增加采集种类）
+ 1.每个物理量都单独建表
+ 2.一个设备或者采集点的物理量种类经常变化，建议采用单列模型
+ 比如电流电压，两个量就键两个超级表
+
+一个变量一张表，这样做的优势是非常明显的。每张表里面只存一个变量的数据即使每秒写入一次，1个月也只有260万条，对其作指定时间范围的查询，不用考虑其他变量的数据，直接从时间戳索引得到想要时间范围的数据，效率很高。云组态的需求正是短时间内有很多变量按秒存储，保存半年左右，并且在此情况下，用户想查询任意一个变量的历史情况都能够快速得到响应。针对平台，在每个设备类型采集参数种类不确定、采集频率不确定的情况下，建议采用单列模型。
+
+
+
+1.以schemaless方式使用TDengine（单列存储模式）
+创建数据库iot_datas，数据的保持时间为365天，过期的数据将会被成块删除：
+CREATE DATABASE IF NOT EXISTS iot_datas KEEP 365
+
+超级表iot_meters用于存储设备的数据信息创建超级表的语句如下：
+CREATE TABLE iot_meters (ts timestamp, value double) TAGS(device_id binary(20), point_id binary(20));
+
+create table iot_meters_1_1 using iot_meters tags (1,1);
+create table iot_meters_60000_1 using iot_meters tags (60000,1)
+
+假设有 1 个设备 meter_001，设备下有 1 路温度 temp 和 1 路湿度 humi，我们可以采用写入数据自动建表的方法：
+INSERT INTO iot_datas.meter_001_humi USING iot_datas.iot_meters TAGS ('meter_001', 'humi') VALUES ('2018-01-01 00:00:00.000',95);
+INSERT INTO iot_datas.meter_001_temp USING iot_datas.iot_meters TAGS ('meter_001', 'temp') VALUES ('2018-01-01 00:00:00.000',20);
+
+自动建表语句只能自动建立子表而不能建立超级表，这就要求超级表已经被事先定义好。这里实现schemaless的方式就是将超级表定义成一个单值模型，也即每条记录为：时间戳+采集值。在超级表的标签列中，要定义出设备ID、点位ID甚至点位物理量名称、点位分组等信息。这样同一设备不同点位的数据上报后，可以通过自动建表的语法向其对应子表中写入，在写入时指定tag值。此时，如果此点位对应子表不存在则会被自动创建；如果此点位对应子表已经存在，则TDengine本身会跳过建表过程，直接写入数据，这样也就是实现了一种schemaless的写入方式。
+
+当然，在确定设备（子表）已经存在的情况下，可以同时向不同的超级表中同时插入数据。注意为了提高写入速度，对同一条insert SQL语句，可以向多张表插入新记录，具体如下：
+
+INSERT INTO iot_datas.meter_001_humi VALUES ('2018-01-01 00:00:01.000', 95)    iot_datas.meter_001_temp VALUES ('2018-01-01 00:00:01.000', 20)
+
+
+days：数据文件存储数据的时间跨度，单位为天
+keep：数据保留的天数
+rows: 文件块中记录条数
+comp: 文件压缩标志位，0：关闭，1:一阶段压缩，2:两阶段压缩
+ctime：数据从写入内存到写入硬盘的最长时间间隔，单位为秒
+clog：数据提交日志(WAL)的标志位，0为关闭，1为打开
+tables：每个vnode允许创建表的最大数目
+cache: 内存块的大小（字节数）
+tblocks: 每张表最大的内存块数
+ablocks: 每张表平均的内存块数
+precision：时间戳为微秒的标志位，ms表示毫秒，us表示微秒
+
+/etc/taos/taos.cfg
+```bash
+# max number of tables per vnode
+# maxTablesPerVnode         1000000
+
+# cache block size (Mbyte)
+# cache                     16
+
+# number of cache blocks per vnode
+# blocks                    6
+
+# number of days per DB file
+# days                  10
+
+# number of days to keep DB file
+# keep                  3650
+
+# minimum rows of records in file block
+# minRows               100
+
+# maximum rows of records in file block
+# maxRows               4096
+
+# max length of an SQL
+# maxSQLLength          65480
+```
+
+
+
+测试创建表的数量
+
+https://www.taosdata.com/blog/2019/12/03/965.html 创建数据表时提示more dnodes are needed
+create database db tables 2000 cache 10240 ablocks 4 tblocks 50 
+cache*ablocks + tblocks*8 + 1000
